@@ -1,13 +1,15 @@
-import { useState } from "react";
-import { useForms, useCreateForm, useGenerateFormAI, useCreateCompleteForm } from "@/hooks/use-forms";
+import { useEffect, useMemo, useState } from "react";
+import { useForms, useCreateForm, useGenerateFormAI, useCreateCompleteForm, useDeleteForm, usePublishForm } from "@/hooks/use-forms";
 import { useSubmissions } from "@/hooks/use-submissions";
-import { Link, useLocation } from "wouter";
+import { useTotalSubmissions, useFormSubmissionsCount } from "@/hooks/use-analytics";
+import { useLocation } from "wouter";
 import { 
   Plus, 
   MoreVertical, 
   FileText, 
   BarChart2, 
   Calendar, 
+  LayoutTemplate,
   Sparkles, 
   Loader2,
   Trash2,
@@ -20,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { ShareFormDialog } from "@/components/share-form-dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Dialog, 
   DialogContent, 
@@ -37,6 +40,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
 import {
   Table,
   TableBody,
@@ -48,7 +52,19 @@ import {
 
 export default function Dashboard() {
   const { data: forms, isLoading } = useForms();
+  const { data: totalSubmissions } = useTotalSubmissions();
+  const createCompleteMutation = useCreateCompleteForm();
+  const deleteFormMutation = useDeleteForm();
+  const publishMutation = usePublishForm();
+  const [location, setLocation] = useLocation();
   const [selectedFormId, setSelectedFormId] = useState<number | null>(null);
+  const [publishingId, setPublishingId] = useState<number | null>(null);
+  const shouldOpenCreate = location === "/dashboard/new";
+  const [createOpen, setCreateOpen] = useState(shouldOpenCreate);
+
+  useEffect(() => {
+    setCreateOpen(shouldOpenCreate);
+  }, [shouldOpenCreate]);
 
   if (isLoading) {
     return (
@@ -90,7 +106,37 @@ export default function Dashboard() {
 
   const activeForms = forms?.filter(f => f.isPublished).length || 0;
   const totalForms = forms?.length || 0;
+
+  const handleUseTemplate = async (template: any) => {
+    const config = template.config as any;
+    const steps = Array.isArray(config?.steps) ? config.steps.map((step: any) => ({
+      title: step.title || "Untitled Step",
+      description: step.description || "",
+      fields: Array.isArray(step.fields) ? step.fields.map((field: any) => ({
+        type: field.type || "text",
+        label: field.label || "Field",
+        placeholder: field.placeholder || "",
+        required: !!field.required,
+        options: Array.isArray(field.options) ? field.options : [],
+      })) : [],
+    })) : [];
+    const form = await createCompleteMutation.mutateAsync({
+      title: config?.title || template.name,
+      description: config?.description || template.description,
+      steps,
+    });
+    setLocation(`/builder/${form.id}`);
+  };
   
+  const handleTogglePublish = async (formId: number) => {
+    setPublishingId(formId);
+    try {
+      await publishMutation.mutateAsync(formId);
+    } finally {
+      setPublishingId(null);
+    }
+  };
+
   return (
     <LayoutShell>
       <div className="space-y-8">
@@ -100,14 +146,19 @@ export default function Dashboard() {
             <h1 className="text-3xl font-bold font-display">Dashboard</h1>
             <p className="text-muted-foreground mt-1">Manage your forms and view performance.</p>
           </div>
-          <CreateFormDialog />
+          <CreateFormDialog open={createOpen} onOpenChange={(open) => {
+            setCreateOpen(open);
+            if (!open && location === "/dashboard/new") {
+              setLocation("/dashboard");
+            }
+          }} />
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <StatCard title="Total Forms" value={totalForms} icon={<FileText className="text-blue-500" />} />
           <StatCard title="Active Forms" value={activeForms} icon={<Sparkles className="text-amber-500" />} />
-          <StatCard title="Total Responses" value={0} icon={<BarChart2 className="text-emerald-500" />} />
+          <StatCard title="Total Responses" value={totalSubmissions || 0} icon={<BarChart2 className="text-emerald-500" />} />
         </div>
 
         {/* Forms List */}
@@ -116,7 +167,14 @@ export default function Dashboard() {
           {forms && forms.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {forms.map((form) => (
-                <FormCard key={form.id} form={form} onViewSubmissions={() => setSelectedFormId(form.id)} />
+                <FormCard
+                  key={form.id}
+                  form={form}
+                  onViewSubmissions={() => setSelectedFormId(form.id)}
+                  onDelete={() => deleteFormMutation.mutate(form.id)}
+                  onTogglePublish={() => handleTogglePublish(form.id)}
+                  isPublishing={publishingId === form.id}
+                />
               ))}
             </div>
           ) : (
@@ -126,7 +184,12 @@ export default function Dashboard() {
               </div>
               <h3 className="text-lg font-medium">No forms yet</h3>
               <p className="text-muted-foreground mb-6">Create your first form to get started</p>
-              <CreateFormDialog />
+              <CreateFormDialog open={createOpen} onOpenChange={(open) => {
+                setCreateOpen(open);
+                if (!open && location === "/dashboard/new") {
+                  setLocation("/dashboard");
+                }
+              }} />
             </div>
           )}
         </div>
@@ -252,8 +315,21 @@ function StatCard({ title, value, icon }: { title: string, value: number, icon: 
   );
 }
 
-function FormCard({ form, onViewSubmissions }: { form: any, onViewSubmissions: () => void }) {
+function FormCard({
+  form,
+  onViewSubmissions,
+  onDelete,
+  onTogglePublish,
+  isPublishing,
+}: {
+  form: any,
+  onViewSubmissions: () => void,
+  onDelete: () => void,
+  onTogglePublish: () => void,
+  isPublishing: boolean,
+}) {
   const [_, setLocation] = useLocation();
+  const { data: submissionCount } = useFormSubmissionsCount(form.id);
 
   return (
     <motion.div 
@@ -262,7 +338,11 @@ function FormCard({ form, onViewSubmissions }: { form: any, onViewSubmissions: (
       whileHover={{ y: -4 }}
       transition={{ duration: 0.2 }}
     >
-      <Card className="h-full flex flex-col hover:border-primary/50 transition-colors group">
+      <Card
+        className={`h-full flex flex-col hover:border-primary/50 transition-colors group ${
+          form.isPublished ? "ring-2 ring-emerald-400/70 shadow-[0_0_24px_rgba(16,185,129,0.25)]" : ""
+        }`}
+      >
         <CardHeader className="flex-1">
           <div className="flex justify-between items-start">
             <div className={`px-2 py-1 rounded-md text-xs font-medium ${form.isPublished ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
@@ -289,7 +369,16 @@ function FormCard({ form, onViewSubmissions }: { form: any, onViewSubmissions: (
                   />
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => window.open(`/forms/${form.id}`, '_blank')}>View Public</DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive focus:text-destructive">Delete</DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => {
+                    if (window.confirm(`Delete \"${form.title}\"? This cannot be undone.`)) {
+                      onDelete();
+                    }
+                  }}
+                >
+                  Delete
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -310,28 +399,52 @@ function FormCard({ form, onViewSubmissions }: { form: any, onViewSubmissions: (
               data-testid={`button-view-submissions-${form.id}`}
             >
               <BarChart2 className="w-3 h-3" />
-              View Submissions
+              {submissionCount || 0} Responses
             </button>
           </div>
-          <Button 
-            className="w-full mt-4 bg-muted hover:bg-muted/80 text-foreground shadow-none" 
-            onClick={() => setLocation(`/builder/${form.id}`)}
-            data-testid={`button-edit-form-${form.id}`}
-          >
-            Edit Form
-          </Button>
+          <div className="grid grid-cols-2 gap-2 mt-4">
+            <Button
+              className="bg-muted hover:bg-muted/80 text-foreground shadow-none"
+              onClick={() => setLocation(`/builder/${form.id}`)}
+              data-testid={`button-edit-form-${form.id}`}
+            >
+              Edit Form
+            </Button>
+            <Button
+              className={form.isPublished ? "bg-emerald-500 hover:bg-emerald-600 text-white" : "bg-primary text-primary-foreground"}
+              onClick={onTogglePublish}
+              data-testid={`button-toggle-publish-${form.id}`}
+              disabled={isPublishing}
+            >
+              {isPublishing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {form.isPublished ? "Unpublishing..." : "Publishing..."}
+                </>
+              ) : (
+                form.isPublished ? "Unpublish" : "Publish"
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </motion.div>
   );
 }
 
-function CreateFormDialog() {
-  const [open, setOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'scratch' | 'ai'>('ai');
+function CreateFormDialog({ open, onOpenChange }: { open?: boolean; onOpenChange?: (open: boolean) => void }) {
+  const [localOpen, setLocalOpen] = useState(false);
+  const effectiveOpen = open ?? localOpen;
+  const setOpen = onOpenChange ?? setLocalOpen;
+  const [activeTab, setActiveTab] = useState<'scratch' | 'ai' | 'template'>('ai');
   const [prompt, setPrompt] = useState("");
   const [title, setTitle] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
+  const [model, setModel] = useState("gemini-2.5-flash");
+  const [complexity, setComplexity] = useState<"compact" | "balanced" | "detailed">("detailed");
+  const [tone, setTone] = useState<"professional" | "friendly" | "formal">("professional");
   const [_, setLocation] = useLocation();
+  const { toast } = useToast();
 
   const createMutation = useCreateForm();
   const generateMutation = useGenerateFormAI();
@@ -339,11 +452,19 @@ function CreateFormDialog() {
 
   const handleCreate = async () => {
     if (activeTab === 'scratch') {
-      const res = await createMutation.mutateAsync({ title: title || "New Form", description: "" });
+      if (!title.trim()) {
+        toast({ title: "Form title required", description: "Give your form a name before creating it." });
+        return;
+      }
+      const res = await createMutation.mutateAsync({ title: title || "New Form", description: "", userId: "dev-user" });
       setOpen(false);
       setLocation(`/builder/${res.id}`);
-    } else {
-      const generated = await generateMutation.mutateAsync(prompt);
+    } else if (activeTab === 'ai') {
+      if (!prompt.trim()) {
+        toast({ title: "Prompt required", description: "Describe the form you want so AI can generate it." });
+        return;
+      }
+      const generated = await generateMutation.mutateAsync({ prompt, model, complexity, tone });
       const form = await createCompleteMutation.mutateAsync({
         title: generated.title,
         description: generated.description,
@@ -357,7 +478,7 @@ function CreateFormDialog() {
   const isPending = createMutation.isPending || generateMutation.isPending || createCompleteMutation.isPending;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={effectiveOpen} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="lg" className="shadow-lg shadow-primary/20" data-testid="button-create-new-form">
           <Plus className="mr-2 h-5 w-5" />
@@ -372,7 +493,7 @@ function CreateFormDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-4 my-6">
+        <div className="grid grid-cols-3 gap-4 my-6">
           <div 
             className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${activeTab === 'ai' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'}`}
             onClick={() => setActiveTab('ai')}
@@ -410,13 +531,65 @@ function CreateFormDialog() {
                 data-testid="input-ai-prompt"
               />
             </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Model</label>
+                <Select value={model} onValueChange={setModel}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash (Fast)</SelectItem>
+                    <SelectItem value="gemini-2.5-pro">Gemini 2.5 Pro (Advanced)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Complexity</label>
+                <Select value={complexity} onValueChange={(value) => setComplexity(value as typeof complexity)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select complexity" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="compact">Compact</SelectItem>
+                    <SelectItem value="balanced">Balanced</SelectItem>
+                    <SelectItem value="detailed">Detailed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Tone</label>
+                <Select value={tone} onValueChange={(value) => setTone(value as typeof tone)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select tone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="professional">Professional</SelectItem>
+                    <SelectItem value="friendly">Friendly</SelectItem>
+                    <SelectItem value="formal">Formal</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        ) : activeTab === 'scratch' ? (
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Form Title</label>
+              <Input 
+                placeholder="e.g. Contact Form" 
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                data-testid="input-form-title"
+              />
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium mb-1.5 block">Form Title</label>
               <Input 
-                placeholder="e.g. Contact Form" 
+                placeholder="Enter form title..." 
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 data-testid="input-form-title"

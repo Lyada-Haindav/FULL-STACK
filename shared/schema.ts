@@ -137,6 +137,9 @@ export type SubmitFormRequest = {
 
 export type GenerateFormRequest = {
   prompt: string;
+  model?: string;
+  complexity?: "compact" | "balanced" | "detailed";
+  tone?: "professional" | "friendly" | "formal";
 };
 
 export type AIGeneratedForm = {

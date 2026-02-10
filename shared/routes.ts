@@ -169,7 +169,12 @@ export const api = {
     generateForm: {
       method: 'POST' as const,
       path: '/api/ai/generate-form',
-      input: z.object({ prompt: z.string() }),
+      input: z.object({ 
+        prompt: z.string(),
+        model: z.string().optional(),
+        complexity: z.enum(['compact', 'balanced', 'detailed']).optional(),
+        tone: z.enum(['professional', 'friendly', 'formal']).optional(),
+      }),
       responses: {
         200: z.object({
           title: z.string(),

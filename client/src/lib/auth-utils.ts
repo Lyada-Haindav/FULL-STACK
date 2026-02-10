@@ -1,17 +1,37 @@
-export function isUnauthorizedError(error: Error): boolean {
-  return /^401: .*Unauthorized/.test(error.message);
+export const TOKEN_KEY = "formflow_token";
+
+// Legacy functions - kept for compatibility
+export function setAuthToken(token: string) {
+  localStorage.setItem(TOKEN_KEY, token);
 }
 
-// Redirect to login with a toast notification
-export function redirectToLogin(toast?: (options: { title: string; description: string; variant: string }) => void) {
-  if (toast) {
-    toast({
-      title: "Unauthorized",
-      description: "You are logged out. Logging in again...",
-      variant: "destructive",
-    });
+export function getAuthToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function clearAuthToken() {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+export function authHeaders(): Record<string, string> {
+  // For Supabase, we don't need custom auth headers
+  // The Supabase client handles authentication automatically
+  return {};
+}
+
+// User helper functions for Supabase
+export function getUserDisplayName(user: any): string {
+  if (!user) return "User";
+  
+  const metadata = user.user_metadata || {};
+  const firstName = metadata.first_name;
+  const lastName = metadata.last_name;
+  
+  if (firstName && lastName) {
+    return `${firstName} ${lastName}`;
+  } else if (firstName) {
+    return firstName;
+  } else {
+    return user.email?.split('@')[0] || "User";
   }
-  setTimeout(() => {
-    window.location.href = "/api/login";
-  }, 500);
 }

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl, type CreateFieldRequest, type UpdateFieldRequest } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
+import { authHeaders } from "@/lib/auth-utils";
 
 export function useCreateField() {
   const queryClient = useQueryClient();
@@ -11,9 +12,8 @@ export function useCreateField() {
       const url = buildUrl(api.fields.create.path, { stepId });
       const res = await fetch(url, {
         method: api.fields.create.method,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(data),
-        credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to create field");
       return api.fields.create.responses[201].parse(await res.json());
@@ -33,9 +33,8 @@ export function useUpdateField() {
       const url = buildUrl(api.fields.update.path, { id });
       const res = await fetch(url, {
         method: api.fields.update.method,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(data),
-        credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to update field");
       return api.fields.update.responses[200].parse(await res.json());
@@ -53,7 +52,7 @@ export function useDeleteField() {
   return useMutation({
     mutationFn: async ({ id, formId }: { id: number; formId: number }) => {
       const url = buildUrl(api.fields.delete.path, { id });
-      const res = await fetch(url, { method: api.fields.delete.method, credentials: "include" });
+      const res = await fetch(url, { method: api.fields.delete.method, headers: { ...authHeaders() } });
       if (!res.ok) throw new Error("Failed to delete field");
     },
     onSuccess: (_, variables) => {
@@ -71,9 +70,8 @@ export function useReorderFields() {
       const url = buildUrl(api.fields.reorder.path, { stepId });
       const res = await fetch(url, {
         method: api.fields.reorder.method,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ fields }),
-        credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to reorder fields");
     },

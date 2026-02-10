@@ -1,6 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
+import { authHeaders } from "@/lib/auth-utils";
 
 type SubmitFormRequest = {
   data: Record<string, any>;
@@ -11,7 +12,7 @@ export function useSubmissions(formId: number) {
     queryKey: [api.submissions.list.path, formId],
     queryFn: async () => {
       const url = buildUrl(api.submissions.list.path, { formId });
-      const res = await fetch(url, { credentials: "include" });
+      const res = await fetch(url, { headers: { ...authHeaders() } });
       if (!res.ok) throw new Error("Failed to fetch submissions");
       return api.submissions.list.responses[200].parse(await res.json());
     },

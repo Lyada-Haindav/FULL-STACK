@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl, type CreateStepRequest, type UpdateStepRequest } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
+import { authHeaders } from "@/lib/auth-utils";
 
 export function useCreateStep() {
   const queryClient = useQueryClient();
@@ -11,9 +12,8 @@ export function useCreateStep() {
       const url = buildUrl(api.steps.create.path, { formId });
       const res = await fetch(url, {
         method: api.steps.create.method,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(data),
-        credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to create step");
       return api.steps.create.responses[201].parse(await res.json());
@@ -33,9 +33,8 @@ export function useUpdateStep() {
       const url = buildUrl(api.steps.update.path, { id });
       const res = await fetch(url, {
         method: api.steps.update.method,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(data),
-        credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to update step");
       return api.steps.update.responses[200].parse(await res.json());
@@ -53,7 +52,7 @@ export function useDeleteStep() {
   return useMutation({
     mutationFn: async ({ id, formId }: { id: number; formId: number }) => {
       const url = buildUrl(api.steps.delete.path, { id });
-      const res = await fetch(url, { method: api.steps.delete.method, credentials: "include" });
+      const res = await fetch(url, { method: api.steps.delete.method, headers: { ...authHeaders() } });
       if (!res.ok) throw new Error("Failed to delete step");
     },
     onSuccess: (_, variables) => {
@@ -71,9 +70,8 @@ export function useReorderSteps() {
       const url = buildUrl(api.steps.reorder.path, { formId });
       const res = await fetch(url, {
         method: api.steps.reorder.method,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ steps }),
-        credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to reorder steps");
     },

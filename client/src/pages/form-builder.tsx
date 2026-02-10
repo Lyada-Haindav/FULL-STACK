@@ -50,23 +50,26 @@ export default function FormBuilder() {
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* Builder Header */}
-      <header className="h-16 border-b border-border bg-card px-6 flex items-center justify-between z-20">
-        <div className="flex items-center gap-4">
+      <header className="h-16 border-b border-border bg-card px-4 sm:px-6 flex items-center justify-between z-20">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
           <Link href="/dashboard">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="flex-shrink-0">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
-          <div className="h-6 w-[1px] bg-border mx-2" />
-          <h1 className="font-bold text-lg truncate max-w-[200px] md:max-w-md">{form.title}</h1>
-          <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded text-xs font-medium uppercase">
+          <div className="h-6 w-[1px] bg-border mx-2 hidden sm:block" />
+          <h1 className="font-bold text-sm sm:text-lg truncate max-w-[150px] sm:max-w-[200px] md:max-w-md">{form.title}</h1>
+          <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded text-xs font-medium uppercase flex-shrink-0">
             {form.isPublished ? 'Published' : 'Draft'}
           </span>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={() => window.open(`/forms/${formId}`, '_blank')}>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Button variant="outline" size="sm" className="hidden sm:flex" onClick={() => window.open(`/forms/${formId}`, '_blank')}>
             <Eye className="h-4 w-4 mr-2" />
             Preview
+          </Button>
+          <Button variant="outline" size="sm" className="sm:hidden" onClick={() => window.open(`/forms/${formId}`, '_blank')}>
+            <Eye className="h-4 w-4" />
           </Button>
           <ShareFormDialog formId={formId} formTitle={form.title} />
           <PublishButton form={form} />
@@ -75,7 +78,7 @@ export default function FormBuilder() {
 
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar: Steps & Outline */}
-        <aside className="w-64 border-r border-border bg-card flex flex-col">
+        <aside className="w-64 sm:w-72 border-r border-border bg-card flex flex-col hidden lg:block">
           <div className="p-4 border-b border-border">
             <h2 className="font-semibold text-sm uppercase text-muted-foreground">Steps</h2>
           </div>
@@ -90,7 +93,7 @@ export default function FormBuilder() {
                   <div className={`h-6 w-6 rounded flex items-center justify-center text-xs border ${idx === activeStepIndex ? 'border-primary bg-primary text-white' : 'border-border bg-background'}`}>
                     {idx + 1}
                   </div>
-                  <span className="truncate flex-1">{step.title}</span>
+                  <span className="truncate flex-1 text-sm">{step.title}</span>
                 </div>
               ))}
               <AddStepButton formId={formId} nextIndex={form.steps.length} />

@@ -2,12 +2,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { type Form, type FormWithStepsAndFields, type CreateFormRequest, type UpdateFormRequest } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { authHeaders } from "@/lib/auth-utils";
 
 export function useForms() {
   return useQuery({
     queryKey: [api.forms.list.path],
     queryFn: async () => {
-      const res = await fetch(api.forms.list.path, { credentials: "include" });
+      const res = await fetch(api.forms.list.path, { headers: { ...authHeaders() } });
       if (!res.ok) throw new Error("Failed to fetch forms");
       return api.forms.list.responses[200].parse(await res.json());
     },
@@ -19,7 +20,7 @@ export function useForm(id: number) {
     queryKey: [api.forms.get.path, id],
     queryFn: async () => {
       const url = buildUrl(api.forms.get.path, { id });
-      const res = await fetch(url, { credentials: "include" });
+      const res = await fetch(url, { headers: { ...authHeaders() } });
       if (res.status === 404) return null;
       if (!res.ok) throw new Error("Failed to fetch form");
       return api.forms.get.responses[200].parse(await res.json());
@@ -35,9 +36,8 @@ export function useCreateForm() {
     mutationFn: async (data: CreateFormRequest) => {
       const res = await fetch(api.forms.create.path, {
         method: api.forms.create.method,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(data),
-        credentials: "include",
       });
       if (!res.ok) {
         if (res.status === 400) {
@@ -67,9 +67,8 @@ export function useUpdateForm() {
       const url = buildUrl(api.forms.update.path, { id });
       const res = await fetch(url, {
         method: api.forms.update.method,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(updates),
-        credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to update form");
       return api.forms.update.responses[200].parse(await res.json());
@@ -88,8 +87,8 @@ export function useDeleteForm() {
 
   return useMutation({
     mutationFn: async (id: number) => {
-      const url = buildUrl(api.forms.delete.path, { id });
-      const res = await fetch(url, { method: api.forms.delete.method, credentials: "include" });
+      const url = `/api/forms/${id}/delete`;
+      const res = await fetch(url, { method: "POST" });
       if (!res.ok) throw new Error("Failed to delete form");
     },
     onSuccess: () => {
@@ -106,14 +105,18 @@ export function usePublishForm() {
   return useMutation({
     mutationFn: async (id: number) => {
       const url = buildUrl(api.forms.publish.path, { id });
-      const res = await fetch(url, { method: api.forms.publish.method, credentials: "include" });
+      const res = await fetch(url, { method: api.forms.publish.method, headers: { ...authHeaders() } });
       if (!res.ok) throw new Error("Failed to publish form");
       return api.forms.publish.responses[200].parse(await res.json());
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [api.forms.list.path] });
       queryClient.invalidateQueries({ queryKey: [api.forms.get.path, data.id] });
-      toast({ title: "Form Published!", description: "Your form is now live and accepting submissions." });
+      if (data.isPublished) {
+        toast({ title: "Form Published!", description: "Your form is now live and accepting submissions." });
+      } else {
+        toast({ title: "Form Unpublished", description: "Your form is now hidden and no longer accepts submissions." });
+      }
     },
   });
 }
@@ -123,12 +126,11 @@ export function useGenerateFormAI() {
   const { toast } = useToast();
   
   return useMutation({
-    mutationFn: async (prompt: string) => {
+    mutationFn: async (payload: { prompt: string; model?: string; complexity?: "compact" | "balanced" | "detailed"; tone?: "professional" | "friendly" | "formal" }) => {
       const res = await fetch(api.ai.generateForm.path, {
         method: api.ai.generateForm.method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
-        credentials: "include",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("AI Generation failed");
       return api.ai.generateForm.responses[200].parse(await res.json());
@@ -147,9 +149,8 @@ export function useCreateCompleteForm() {
     mutationFn: async (data: { title: string; description?: string; steps: any[] }) => {
       const res = await fetch("/api/forms/create-complete", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(data),
-        credentials: "include",
       });
       if (!res.ok) {
         const error = await res.json();

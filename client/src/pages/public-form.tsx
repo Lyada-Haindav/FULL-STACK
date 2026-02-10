@@ -10,7 +10,7 @@ import { useForm as useReactForm } from "react-hook-form";
 import { motion, AnimatePresence } from "framer-motion";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CheckCircle2, ChevronRight, ChevronLeft, Loader2, Mic } from "lucide-react";
-import { VoiceInput } from "@/components/voice-input";
+import { SimpleVoiceInput } from "@/components/simple-voice-input";
 import { Textarea } from "@/components/ui/textarea";
 
 export default function PublicForm() {
@@ -117,12 +117,12 @@ export default function PublicForm() {
                               {...register(`field_${field.id}`, { required: field.required })}
                               type={field.type === 'number' ? 'number' : 'text'}
                               placeholder={field.placeholder || "Your answer..."}
-                              className="bg-gray-50/50"
+                              className="bg-gray-50/50 pr-12"
                             />
                             {/* Voice Input Integration */}
-                            <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                               <VoiceInput 
-                                 onTranscript={(text) => {
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10">
+                               <SimpleVoiceInput 
+                                 onTranscript={(text: string) => {
                                    const fieldName = `field_${field.id}`;
                                    setValue(fieldName, text, { shouldValidate: true });
                                  }} 
@@ -134,11 +134,11 @@ export default function PublicForm() {
                           <div className="relative flex-1">
                             <Textarea 
                               {...register(`field_${field.id}`, { required: field.required })}
-                              className="bg-gray-50/50 min-h-[120px]"
+                              className="bg-gray-50/50 min-h-[120px] pr-12"
                               placeholder={field.placeholder || "Your answer..."}
                             />
-                            <div className="absolute right-2 bottom-2">
-                               <VoiceInput onTranscript={(text) => {
+                            <div className="absolute right-3 bottom-3 z-10">
+                               <SimpleVoiceInput onTranscript={(text: string) => {
                                  const fieldName = `field_${field.id}`;
                                  const current = getValues(fieldName) || "";
                                  setValue(fieldName, current ? `${current} ${text}` : text, { shouldValidate: true });
