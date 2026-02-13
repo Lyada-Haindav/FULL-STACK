@@ -8,66 +8,58 @@
   --font-display: 'Space Grotesk', sans-serif;
   --font-body: 'Manrope', sans-serif;
 
-  /* Warm Tech Palette - Sand/Teal/Ink */
-  --background: 36 33% 97%;
-  --foreground: 210 24% 14%;
+  /* Noir Studio Palette - Carbon/Graphite/Gold */
+  --background: 230 18% 7%;
+  --foreground: 20 14% 96%;
 
-  --card: 0 0% 100%;
-  --card-foreground: 210 24% 14%;
+  --card: 228 16% 10%;
+  --card-foreground: 20 14% 96%;
 
-  --popover: 0 0% 100%;
-  --popover-foreground: 210 24% 14%;
+  --popover: 228 16% 12%;
+  --popover-foreground: 20 14% 96%;
 
-  --primary: 174 70% 35%;
-  --primary-foreground: 0 0% 98%;
+  --primary: 38 92% 56%;
+  --primary-foreground: 220 20% 8%;
 
-  --secondary: 24 24% 93%;
-  --secondary-foreground: 210 24% 14%;
+  --secondary: 225 14% 16%;
+  --secondary-foreground: 20 14% 96%;
 
-  --muted: 24 20% 94%;
-  --muted-foreground: 210 12% 45%;
+  --muted: 225 14% 14%;
+  --muted-foreground: 216 10% 68%;
 
-  --accent: 36 100% 92%;
-  --accent-foreground: 210 24% 14%;
+  --accent: 200 90% 55%;
+  --accent-foreground: 230 18% 7%;
 
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 0 0% 98%;
+  --destructive: 0 76% 56%;
+  --destructive-foreground: 20 14% 96%;
 
-  --border: 24 20% 88%;
-  --input: 24 20% 88%;
-  --ring: 174 70% 35%;
+  --border: 225 12% 18%;
+  --input: 225 12% 18%;
+  --ring: 38 92% 56%;
 
-  --radius: 0.75rem;
+  --radius: 0.85rem;
 }
 
 .dark {
-  --background: 240 10% 3.9%;
-  --foreground: 0 0% 98%;
-
-  --card: 240 10% 3.9%;
-  --card-foreground: 0 0% 98%;
-
-  --popover: 240 10% 3.9%;
-  --popover-foreground: 0 0% 98%;
-
-  --primary: 250 85% 60%;
-  --primary-foreground: 0 0% 98%;
-
-  --secondary: 240 3.7% 15.9%;
-  --secondary-foreground: 0 0% 98%;
-
-  --muted: 240 3.7% 15.9%;
-  --muted-foreground: 240 5% 64.9%;
-
-  --accent: 240 3.7% 15.9%;
-  --accent-foreground: 0 0% 98%;
-
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 0 0% 98%;
-
-  --border: 240 3.7% 15.9%;
-  --input: 240 3.7% 15.9%;
-  --ring: 240 4.9% 83.9%;
+  --background: 230 18% 7%;
+  --foreground: 20 14% 96%;
+  --card: 228 16% 10%;
+  --card-foreground: 20 14% 96%;
+  --popover: 228 16% 12%;
+  --popover-foreground: 20 14% 96%;
+  --primary: 38 92% 56%;
+  --primary-foreground: 220 20% 8%;
+  --secondary: 225 14% 16%;
+  --secondary-foreground: 20 14% 96%;
+  --muted: 225 14% 14%;
+  --muted-foreground: 216 10% 68%;
+  --accent: 200 90% 55%;
+  --accent-foreground: 230 18% 7%;
+  --destructive: 0 76% 56%;
+  --destructive-foreground: 20 14% 96%;
+  --border: 225 12% 18%;
+  --input: 225 12% 18%;
+  --ring: 38 92% 56%;
 }
 
 @layer base {
@@ -77,6 +69,10 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-body);
+    background-image:
+      radial-gradient(1200px 600px at 20% -10%, rgba(248, 197, 73, 0.15), transparent 55%),
+      radial-gradient(900px 500px at 90% 0%, rgba(45, 212, 191, 0.12), transparent 60%),
+      radial-gradient(1000px 700px at 50% 120%, rgba(59, 130, 246, 0.14), transparent 60%);
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
@@ -86,17 +82,17 @@
 
 @layer components {
   .glass-card {
-    @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-xl dark:bg-black/40 dark:border-white/10;
+    @apply bg-white/5 backdrop-blur-md border border-white/10 shadow-xl;
   }
   
   .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-amber-500;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-amber-400 to-emerald-300;
   }
 
   .premium-shadow {
-    box-shadow: 0 0 0 1px rgba(0,0,0,0.03),
-                0 2px 8px rgba(0,0,0,0.04),
-                0 12px 24px rgba(0,0,0,0.04);
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.04),
+                0 6px 20px rgba(0,0,0,0.35),
+                0 18px 60px rgba(0,0,0,0.35);
   }
 }
 
@@ -109,7 +105,7 @@
   @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/30 transition-colors;
+  @apply bg-muted-foreground/30 rounded-full hover:bg-muted-foreground/40 transition-colors;
 }
 
 /* Animation Utilities */

@@ -45,8 +45,7 @@ public class AuthController {
     if (authentication == null || authentication.getName() == null) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
-    Long userId = Long.parseLong(authentication.getName());
-    return authService.getUser(userId)
+    return authService.getUser(authentication.getName())
       .map(ResponseEntity::ok)
       .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
   }

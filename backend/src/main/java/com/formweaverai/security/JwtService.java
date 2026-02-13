@@ -22,10 +22,10 @@ public class JwtService {
     return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
   }
 
-  public String generateToken(Long userId, String email) {
+  public String generateToken(String userId, String email) {
     Instant now = Instant.now();
     return Jwts.builder()
-      .setSubject(String.valueOf(userId))
+      .setSubject(userId)
       .setIssuedAt(Date.from(now))
       .setExpiration(Date.from(now.plusSeconds(60 * 60 * 24 * 7)))
       .claim("email", email)
@@ -33,13 +33,13 @@ public class JwtService {
       .compact();
   }
 
-  public Long parseUserId(String token) {
+  public String parseUserId(String token) {
     String subject = Jwts.parser()
       .setSigningKey(getSigningKey())
       .build()
       .parseClaimsJws(token)
       .getBody()
       .getSubject();
-    return Long.parseLong(subject);
+    return subject;
   }
 }

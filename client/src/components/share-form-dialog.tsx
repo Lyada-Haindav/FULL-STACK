@@ -14,7 +14,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ShareFormDialogProps {
-  formId: number;
+  formId: string;
   formTitle: string;
   trigger?: React.ReactNode;
 }
@@ -53,9 +53,9 @@ export function ShareFormDialog({ formId, formTitle, trigger }: ShareFormDialogP
     const img = new Image();
     
     img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx?.drawImage(img, 0, 0);
+      canvas.width = img.width || 180;
+      canvas.height = img.height || 180;
+      ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
       const pngFile = canvas.toDataURL("image/png");
       const downloadLink = document.createElement("a");
       downloadLink.download = `${formTitle.replace(/\s+/g, '-').toLowerCase()}-qr.png`;
@@ -63,7 +63,7 @@ export function ShareFormDialog({ formId, formTitle, trigger }: ShareFormDialogP
       downloadLink.click();
     };
     
-    img.src = "data:image/svg+xml;base64," + btoa(svgData);
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgData);
   };
 
   return (
@@ -76,7 +76,7 @@ export function ShareFormDialog({ formId, formTitle, trigger }: ShareFormDialogP
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-card/95 text-foreground border border-border/60 shadow-2xl">
         <DialogHeader>
           <DialogTitle>Share Form</DialogTitle>
           <DialogDescription>
@@ -91,7 +91,7 @@ export function ShareFormDialog({ formId, formTitle, trigger }: ShareFormDialogP
               <Input 
                 readOnly 
                 value={shareUrl} 
-                className="flex-1 bg-muted/50"
+                className="flex-1 bg-muted/40 border-border/60"
                 data-testid="input-share-url"
               />
               <Button 
@@ -105,14 +105,16 @@ export function ShareFormDialog({ formId, formTitle, trigger }: ShareFormDialogP
             </div>
           </div>
 
-          <div className="flex flex-col items-center gap-4 p-6 bg-muted/30 rounded-xl border border-dashed">
-            <div className="bg-white p-3 rounded-lg shadow-sm">
+          <div className="flex flex-col items-center gap-4 p-6 bg-muted/20 rounded-xl border border-border/60">
+            <div className="bg-transparent p-3 rounded-lg border border-border/60">
               <QRCodeSVG 
                 ref={qrRef}
                 value={shareUrl} 
                 size={160}
                 level="H"
                 includeMargin={false}
+                bgColor="transparent"
+                fgColor="#f5f5f5"
               />
             </div>
             <div className="text-center">

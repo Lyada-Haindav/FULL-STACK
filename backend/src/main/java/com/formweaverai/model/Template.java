@@ -1,34 +1,26 @@
 package com.formweaverai.model;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.formweaverai.util.JsonNodeConverter;
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
-@Entity
-@Table(name = "templates")
+@Document(collection = "templates")
 public class Template {
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+  private String id;
 
-  @Column(nullable = false)
   private String name;
 
-  @Column(nullable = false)
   private String description;
 
-  @Column(nullable = false)
   private String icon;
 
-  @Column(nullable = false)
   private String category;
 
-  @Convert(converter = JsonNodeConverter.class)
-  @Column(nullable = false, columnDefinition = "json")
-  private JsonNode config;
+  private Object config;
 
-  public Long getId() { return id; }
-  public void setId(Long id) { this.id = id; }
+  public String getId() { return id; }
+  public void setId(String id) { this.id = id; }
   public String getName() { return name; }
   public void setName(String name) { this.name = name; }
   public String getDescription() { return description; }
@@ -37,6 +29,6 @@ public class Template {
   public void setIcon(String icon) { this.icon = icon; }
   public String getCategory() { return category; }
   public void setCategory(String category) { this.category = category; }
-  public JsonNode getConfig() { return config; }
-  public void setConfig(JsonNode config) { this.config = config; }
+  public Object getConfig() { return config; }
+  public void setConfig(Object config) { this.config = config; }
 }

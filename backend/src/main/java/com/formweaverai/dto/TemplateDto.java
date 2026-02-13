@@ -1,12 +1,10 @@
 package com.formweaverai.dto;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 public record TemplateDto(
-  Long id,
+  String id,
   String name,
   String description,
   String icon,
   String category,
-  JsonNode config
+  Object config
 ) {}

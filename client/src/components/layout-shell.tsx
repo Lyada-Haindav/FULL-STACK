@@ -27,9 +27,27 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
       {/* Sidebar - Desktop */}
       <aside className="hidden md:flex flex-col w-64 border-r border-border bg-card/50 backdrop-blur-sm fixed h-full z-30">
         <div className="p-6 border-b border-border/50">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-white font-bold text-lg">F</span>
+          <Link href="/dashboard" className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-muted/30 border border-border/60 flex items-center justify-center">
+              <svg width="28" height="28" viewBox="0 0 128 128" aria-hidden="true">
+                <defs>
+                  <linearGradient id="ffg1" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stopColor="#f59e0b" />
+                    <stop offset="1" stopColor="#22d3ee" />
+                  </linearGradient>
+                  <linearGradient id="ffg2" x1="0" y1="1" x2="1" y2="0">
+                    <stop offset="0" stopColor="#0b0f14" />
+                    <stop offset="1" stopColor="#111827" />
+                  </linearGradient>
+                </defs>
+                <rect x="8" y="8" width="112" height="112" rx="26" fill="url(#ffg2)" stroke="url(#ffg1)" strokeWidth="6" />
+                <path d="M40 34h52v14H56v12h30v14H56v20H40V34z" fill="url(#ffg1)" />
+                <g transform="translate(64 84)">
+                  <rect x="-14" y="-9" width="28" height="18" rx="9" fill="#0b0f14" stroke="url(#ffg1)" strokeWidth="2" />
+                  <path d="M-7 3l2-6h2l2 6" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />
+                  <path d="M5-4v8" stroke="#22d3ee" strokeWidth="2" strokeLinecap="round" />
+                </g>
+              </svg>
             </div>
             <span className="font-display font-bold text-xl tracking-tight">FormFlow AI</span>
           </Link>
@@ -75,9 +93,22 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card sticky top-0 z-40">
-        <Link href="/dashboard" className="flex items-center gap-2 min-w-0 flex-1">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-            <span className="text-white font-bold text-lg">F</span>
+        <Link href="/dashboard" className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="h-8 w-8 rounded-lg bg-muted/30 border border-border/60 flex items-center justify-center flex-shrink-0">
+            <svg width="20" height="20" viewBox="0 0 128 128" aria-hidden="true">
+              <defs>
+                <linearGradient id="ffg1m" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stopColor="#f59e0b" />
+                  <stop offset="1" stopColor="#22d3ee" />
+                </linearGradient>
+                <linearGradient id="ffg2m" x1="0" y1="1" x2="1" y2="0">
+                  <stop offset="0" stopColor="#0b0f14" />
+                  <stop offset="1" stopColor="#111827" />
+                </linearGradient>
+              </defs>
+              <rect x="8" y="8" width="112" height="112" rx="26" fill="url(#ffg2m)" stroke="url(#ffg1m)" strokeWidth="6" />
+              <path d="M40 34h52v14H56v12h30v14H56v20H40V34z" fill="url(#ffg1m)" />
+            </svg>
           </div>
           <span className="font-display font-bold text-lg truncate">{getUserDisplayName(user)}</span>
         </Link>

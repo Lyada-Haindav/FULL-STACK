@@ -36,7 +36,7 @@ public class GeminiService {
       "3) Always include placeholder as a string (empty string allowed). " +
       "4) For select/radio fields, include options array with at least 2 items. " +
       "5) For other field types, options must be an empty array. " +
-      "6) Field types must be one of: text, number, select, checkbox, radio, textarea, date. " +
+      "6) Field types must be one of: text, email, number, select, checkbox, radio, textarea, date, file. " +
       "7) Use 2-4 steps with 2-6 fields per step when possible. " +
       "Response format: {\"title\":\"Form Title\",\"description\":\"Form Description\",\"steps\":[{\"title\":\"Step Title\",\"description\":\"Step Description\",\"fields\":[{\"type\":\"text\",\"label\":\"Field Label\",\"placeholder\":\"Placeholder\",\"required\":true,\"options\":[{\"label\":\"Option 1\",\"value\":\"opt1\"}]}]}]}";
 
@@ -207,7 +207,7 @@ public class GeminiService {
     if (input == null) {
       return fallback("Generated Form");
     }
-    List<String> allowedTypes = List.of("text", "number", "select", "checkbox", "radio", "textarea", "date");
+    List<String> allowedTypes = List.of("text", "email", "number", "select", "checkbox", "radio", "textarea", "date", "file");
     List<AiGeneratedFormDto.AiStepDto> steps = input.steps() == null ? List.of() : input.steps().stream()
       .map(step -> {
         String stepTitle = (step.title() == null || step.title().isBlank()) ? "Step" : step.title();
@@ -382,7 +382,8 @@ public class GeminiService {
             List.of(
               field("textarea", "Summary of relevant experience", "", true),
               field("text", "Primary role/title", "", true),
-              field("text", "LinkedIn or portfolio URL", "", false)
+              field("text", "LinkedIn or portfolio URL", "", false),
+              field("file", "Resume (PDF or DOC)", "", false)
             )
           ),
           new AiGeneratedFormDto.AiStepDto(

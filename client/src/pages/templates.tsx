@@ -9,6 +9,7 @@ import { LayoutTemplate, ArrowRight, Star, Clock, Users, Loader2, X } from "luci
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { normalizeTemplateConfig } from "@/lib/legacy-config";
 
 // Template Card Component
 function TemplateCard({ template, onUseTemplate, onPreview, isPending }: {
@@ -22,20 +23,47 @@ function TemplateCard({ template, onUseTemplate, onPreview, isPending }: {
       case "Mail": return "📧";
       case "Briefcase": return "💼";
       case "Calendar": return "📅";
-      case "GraduationCap": return "🎓";
-      case "Heart": return "❤️";
+      case "GraduationCap":
+      case "BookOpen": return "🎓";
+      case "Heart":
+      case "HeartPulse":
+      case "Stethoscope": return "❤️";
+      case "ClipboardList":
+      case "ClipboardCheck":
+      case "ClipboardSignature": return "📋";
+      case "MessageSquare": return "💬";
+      case "Users": return "🧑‍🤝‍🧑";
+      case "Star": return "⭐";
+      case "LifeBuoy": return "🆘";
+      case "Sparkles": return "✨";
+      case "Building2": return "🏢";
+      case "Banknote": return "💵";
+      case "ShieldAlert": return "🛡️";
+      case "Plane": return "✈️";
+      case "Package": return "📦";
+      case "MapPin": return "📍";
+      case "UserCheck": return "✅";
+      case "Bug": return "🐞";
+      case "Handshake": return "🤝";
+      case "KeyRound": return "🔑";
+      case "Presentation": return "🖥️";
+      case "Receipt": return "🧾";
+      case "Home": return "🏠";
+      case "Scale": return "⚖️";
       default: return "📋";
     }
   };
 
   const getTemplateStats = (config: any) => {
-    const steps = config?.steps || [];
+    const normalized = normalizeTemplateConfig(config);
+    const steps = normalized?.steps || [];
     const fields = steps.reduce((acc: number, step: any) => acc + (step?.fields?.length || 0), 0);
     return { steps: steps.length, fields };
   };
 
   const getSteps = (config: any) => {
-    return config?.steps || [];
+    const normalized = normalizeTemplateConfig(config);
+    return normalized?.steps || [];
   };
 
   const stats = getTemplateStats(template.config);
@@ -138,6 +166,14 @@ export default function TemplatesPage() {
     { id: "events", name: "Events" },
     { id: "education", name: "Education" },
     { id: "healthcare", name: "Healthcare" },
+    { id: "product", name: "Product" },
+    { id: "support", name: "Support" },
+    { id: "sales", name: "Sales" },
+    { id: "operations", name: "Operations" },
+    { id: "finance", name: "Finance" },
+    { id: "it", name: "IT" },
+    { id: "real estate", name: "Real Estate" },
+    { id: "legal", name: "Legal" },
   ];
 
   const filteredTemplates = currentCategory === "all" 
@@ -149,25 +185,52 @@ export default function TemplatesPage() {
       case "Mail": return "📧";
       case "Briefcase": return "💼";
       case "Calendar": return "📅";
-      case "GraduationCap": return "🎓";
-      case "Heart": return "❤️";
+      case "GraduationCap":
+      case "BookOpen": return "🎓";
+      case "Heart":
+      case "HeartPulse":
+      case "Stethoscope": return "❤️";
+      case "ClipboardList":
+      case "ClipboardCheck":
+      case "ClipboardSignature": return "📋";
+      case "MessageSquare": return "💬";
+      case "Users": return "🧑‍🤝‍🧑";
+      case "Star": return "⭐";
+      case "LifeBuoy": return "🆘";
+      case "Sparkles": return "✨";
+      case "Building2": return "🏢";
+      case "Banknote": return "💵";
+      case "ShieldAlert": return "🛡️";
+      case "Plane": return "✈️";
+      case "Package": return "📦";
+      case "MapPin": return "📍";
+      case "UserCheck": return "✅";
+      case "Bug": return "🐞";
+      case "Handshake": return "🤝";
+      case "KeyRound": return "🔑";
+      case "Presentation": return "🖥️";
+      case "Receipt": return "🧾";
+      case "Home": return "🏠";
+      case "Scale": return "⚖️";
       default: return "📋";
     }
   };
 
   const getTemplateStats = (config: any) => {
-    const steps = config?.steps || [];
+    const normalized = normalizeTemplateConfig(config);
+    const steps = normalized?.steps || [];
     const fields = steps.reduce((acc: number, step: any) => acc + (step?.fields?.length || 0), 0);
     return { steps: steps.length, fields };
   };
 
   const getSteps = (config: any) => {
-    return config?.steps || [];
+    const normalized = normalizeTemplateConfig(config);
+    return normalized?.steps || [];
   };
 
   const handleUseTemplate = async (template: any) => {
     try {
-      const config = template.config as any;
+      const config = normalizeTemplateConfig(template.config) as any;
       const steps = Array.isArray(config?.steps) ? config.steps.map((step: any) => ({
         title: step.title || "Untitled Step",
         description: step.description || "",

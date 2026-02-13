@@ -1,50 +1,40 @@
 package com.formweaverai.model;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.formweaverai.util.JsonNodeConverter;
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
-@Entity
-@Table(name = "form_fields")
+@Document(collection = "form_fields")
 public class FormField {
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+  private String id;
 
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "step_id", nullable = false)
-  private FormStep step;
+  @Field("step_id")
+  private String stepId;
 
-  @Column(nullable = false)
   private String type;
 
-  @Column(nullable = false)
   private String label;
 
-  @Column
   private String placeholder;
 
-  @Column(name = "default_value")
+  @Field("default_value")
   private String defaultValue;
 
-  @Column(nullable = false)
   private boolean required = false;
 
-  @Column(name = "order_index", nullable = false)
+  @Field("order_index")
   private Integer orderIndex;
 
-  @Convert(converter = JsonNodeConverter.class)
-  @Column(columnDefinition = "json")
-  private JsonNode options;
+  private Object options;
 
-  @Convert(converter = JsonNodeConverter.class)
-  @Column(name = "validation_rules", columnDefinition = "json")
-  private JsonNode validationRules;
+  @Field("validation_rules")
+  private Object validationRules;
 
-  public Long getId() { return id; }
-  public void setId(Long id) { this.id = id; }
-  public FormStep getStep() { return step; }
-  public void setStep(FormStep step) { this.step = step; }
+  public String getId() { return id; }
+  public void setId(String id) { this.id = id; }
+  public String getStepId() { return stepId; }
+  public void setStepId(String stepId) { this.stepId = stepId; }
   public String getType() { return type; }
   public void setType(String type) { this.type = type; }
   public String getLabel() { return label; }
@@ -57,8 +47,8 @@ public class FormField {
   public void setRequired(boolean required) { this.required = required; }
   public Integer getOrderIndex() { return orderIndex; }
   public void setOrderIndex(Integer orderIndex) { this.orderIndex = orderIndex; }
-  public JsonNode getOptions() { return options; }
-  public void setOptions(JsonNode options) { this.options = options; }
-  public JsonNode getValidationRules() { return validationRules; }
-  public void setValidationRules(JsonNode validationRules) { this.validationRules = validationRules; }
+  public Object getOptions() { return options; }
+  public void setOptions(Object options) { this.options = options; }
+  public Object getValidationRules() { return validationRules; }
+  public void setValidationRules(Object validationRules) { this.validationRules = validationRules; }
 }

@@ -5,5 +5,6 @@ import jakarta.validation.constraints.NotBlank;
 public record CreateFormRequest(
   @NotBlank String title,
   String description,
-  Boolean isPublished
+  Boolean isPublished,
+  Object theme
 ) {}

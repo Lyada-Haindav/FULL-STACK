@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: formweaver-backend
+    env: docker
+    plan: free
+    rootDir: backend
+    dockerfilePath: Dockerfile
+    autoDeploy: true
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DATABASE
+        value: form_weaver
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: DEMO_USER_EMAIL
+        value: demo@formweaver.local
+      - key: DEMO_USER_PASSWORD
+        value: demo1234

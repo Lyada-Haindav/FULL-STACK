@@ -1,47 +1,41 @@
 package com.formweaverai.model;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 import java.time.Instant;
 
-@Entity
-@Table(name = "forms")
+@Document(collection = "forms")
 public class Form {
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+  private String id;
 
-  @Column(name = "user_id", nullable = false)
+  @Field("user_id")
   private String userId;
 
-  @Column(nullable = false)
   private String title;
 
-  @Column
   private String description;
 
-  @Column(name = "is_published", nullable = false)
+  @Field("is_published")
   private boolean isPublished = false;
 
-  @Column(name = "created_at", nullable = false)
+  @Field("created_at")
   private Instant createdAt;
 
-  @Column(name = "updated_at", nullable = false)
+  @Field("updated_at")
   private Instant updatedAt;
 
-  @PrePersist
-  void onCreate() {
+  private Object theme;
+
+  public Form() {
     Instant now = Instant.now();
-    createdAt = now;
-    updatedAt = now;
+    this.createdAt = now;
+    this.updatedAt = now;
   }
 
-  @PreUpdate
-  void onUpdate() {
-    updatedAt = Instant.now();
-  }
-
-  public Long getId() { return id; }
-  public void setId(Long id) { this.id = id; }
+  public String getId() { return id; }
+  public void setId(String id) { this.id = id; }
   public String getUserId() { return userId; }
   public void setUserId(String userId) { this.userId = userId; }
   public String getTitle() { return title; }
@@ -52,4 +46,6 @@ public class Form {
   public void setPublished(boolean published) { isPublished = published; }
   public Instant getCreatedAt() { return createdAt; }
   public Instant getUpdatedAt() { return updatedAt; }
+  public Object getTheme() { return theme; }
+  public void setTheme(Object theme) { this.theme = theme; }
 }

@@ -4,3 +4,8 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+backend/target
+backend/*.log
+backend/tmp*.txt
+backend/temp_service.java
+backend/src/main/java/com/formweaverai/service/FormService.java*

@@ -36,11 +36,11 @@ public class SubmissionService {
         return submissionRepository.countBySubmittedAtAfter(thirtyDaysAgo);
     }
 
-    public long getSubmissionsCountForForm(Long formId) {
+    public long getSubmissionsCountForForm(String formId) {
         return submissionRepository.countByFormId(formId);
     }
 
-    public List<Submission> getSubmissionsForForm(Long formId) {
-        return submissionRepository.findByFormIdOrderBySubmittedAtDesc(formId);
+    public List<Submission> getSubmissionsForForm(String formId) {
+        return submissionRepository.findAllByFormIdOrderBySubmittedAtDesc(formId);
     }
 }

@@ -8,7 +8,7 @@ export function useCreateStep() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ formId, ...data }: { formId: number } & CreateStepRequest) => {
+    mutationFn: async ({ formId, ...data }: { formId: string } & CreateStepRequest) => {
       const url = buildUrl(api.steps.create.path, { formId });
       const res = await fetch(url, {
         method: api.steps.create.method,
@@ -29,7 +29,7 @@ export function useUpdateStep() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, formId, ...data }: { id: number; formId: number } & UpdateStepRequest) => {
+    mutationFn: async ({ id, formId, ...data }: { id: string; formId: string } & UpdateStepRequest) => {
       const url = buildUrl(api.steps.update.path, { id });
       const res = await fetch(url, {
         method: api.steps.update.method,
@@ -50,7 +50,7 @@ export function useDeleteStep() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, formId }: { id: number; formId: number }) => {
+    mutationFn: async ({ id, formId }: { id: string; formId: string }) => {
       const url = buildUrl(api.steps.delete.path, { id });
       const res = await fetch(url, { method: api.steps.delete.method, headers: { ...authHeaders() } });
       if (!res.ok) throw new Error("Failed to delete step");
@@ -66,7 +66,7 @@ export function useReorderSteps() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ formId, steps }: { formId: number; steps: { id: number; orderIndex: number }[] }) => {
+    mutationFn: async ({ formId, steps }: { formId: string; steps: { id: string; orderIndex: number }[] }) => {
       const url = buildUrl(api.steps.reorder.path, { formId });
       const res = await fetch(url, {
         method: api.steps.reorder.method,

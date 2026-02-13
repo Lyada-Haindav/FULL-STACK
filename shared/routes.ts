@@ -106,7 +106,7 @@ export const api = {
       method: 'POST' as const,
       path: '/api/forms/:formId/steps/reorder',
       input: z.object({
-        steps: z.array(z.object({ id: z.number(), orderIndex: z.number() })),
+        steps: z.array(z.object({ id: z.string(), orderIndex: z.number() })),
       }),
       responses: {
         200: z.void(),
@@ -141,7 +141,7 @@ export const api = {
       method: 'POST' as const,
       path: '/api/steps/:stepId/fields/reorder',
       input: z.object({
-        fields: z.array(z.object({ id: z.number(), orderIndex: z.number() })),
+        fields: z.array(z.object({ id: z.string(), orderIndex: z.number() })),
       }),
       responses: {
         200: z.void(),

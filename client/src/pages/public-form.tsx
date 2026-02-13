@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 export default function PublicForm() {
   const { id } = useParams();
-  const formId = parseInt(id || "0");
+  const formId = id || "0";
   const { data: form, isLoading } = useForm(formId);
   const submit = useSubmitForm();
   
@@ -30,6 +30,11 @@ export default function PublicForm() {
   const totalSteps = form.steps.length;
   const isLastStep = currentStep === totalSteps - 1;
   const step = form.steps[currentStep];
+  const theme: any = form.theme || {};
+  const primaryColor = theme?.primaryColor;
+  const backgroundStyle = theme?.backgroundStyle || "dark";
+  const backgroundColor = theme?.backgroundColor || "#0b0f14";
+  const gradientTo = theme?.gradientTo || "#1f2937";
 
   const onNext = async () => {
     const isValid = await trigger();
@@ -39,14 +44,24 @@ export default function PublicForm() {
         handleSubmit(async (formData) => {
           // Flatten form data into expected structure: { data: Record<string, any> }
           const submissionData: Record<string, any> = {};
+          const submissionFiles: Record<string, File[]> = {};
           Object.keys(formData).forEach(key => {
-            if (key.startsWith('field_')) {
-              submissionData[key] = formData[key];
+            if (!key.startsWith('field_')) return;
+            const value = formData[key];
+            if (value instanceof FileList) {
+              const files = Array.from(value).filter(file => file && file.size > 0);
+              if (files.length > 0) {
+                submissionFiles[key] = files;
+              } else {
+                submissionData[key] = null;
+              }
+              return;
             }
+            submissionData[key] = value;
           });
           
           try {
-            await submit.mutateAsync({ formId, data: submissionData });
+            await submit.mutateAsync({ formId, data: submissionData, files: submissionFiles });
             setSubmitted(true);
           } catch (error) {
             console.error("Submission failed:", error);
@@ -58,12 +73,19 @@ export default function PublicForm() {
     }
   };
 
+  const handleEnter = (event: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    if (event.key !== "Enter") return;
+    if ((event.target as HTMLElement).tagName.toLowerCase() === "textarea") return;
+    event.preventDefault();
+    onNext();
+  };
+
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center max-w-md">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle2 className="w-10 h-10 text-green-600" />
+          <div className="w-20 h-20 bg-emerald-500/15 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 className="w-10 h-10 text-emerald-400" />
           </div>
           <h1 className="text-3xl font-display font-bold mb-4">Thank you!</h1>
           <p className="text-muted-foreground">Your response has been recorded successfully.</p>
@@ -73,17 +95,46 @@ export default function PublicForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <div className="w-full bg-white border-b border-gray-200">
-        <div className="h-1 bg-primary/10 w-full">
+    <div
+      className="min-h-screen bg-background flex flex-col"
+      style={{
+        background:
+          backgroundStyle === "solid"
+            ? backgroundColor
+            : backgroundStyle === "gradient"
+              ? `linear-gradient(135deg, ${backgroundColor}, ${gradientTo})`
+              : undefined,
+      }}
+    >
+      <div className="w-full bg-background/80 border-b border-border/60 backdrop-blur">
+        <div className="h-1 bg-primary/20 w-full">
           <motion.div 
-            className="h-full bg-primary" 
+            className="h-full bg-primary"
+            style={primaryColor ? { backgroundColor: primaryColor } : undefined}
             initial={{ width: 0 }}
             animate={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
           />
         </div>
         <div className="max-w-3xl mx-auto px-6 py-4">
-           <h1 className="font-bold text-xl">{form.title}</h1>
+           <div className="flex items-center gap-3">
+             {theme?.logoUrl ? (
+               <div className="h-10 w-10 rounded-xl bg-muted/30 border border-border/60 flex items-center justify-center overflow-hidden">
+                 <img
+                   src={theme.logoUrl}
+                   alt="Logo"
+                   className="h-8 w-8 object-contain"
+                   onError={(e) => {
+                     (e.currentTarget as HTMLImageElement).style.display = "none";
+                   }}
+                 />
+               </div>
+             ) : (
+               <div className="h-10 w-10 rounded-xl bg-muted/40 flex items-center justify-center text-xs text-muted-foreground">
+                 FF
+               </div>
+             )}
+             <h1 className="font-bold text-xl">{form.title}</h1>
+           </div>
         </div>
       </div>
 
@@ -96,7 +147,10 @@ export default function PublicForm() {
             exit={{ x: -20, opacity: 0 }}
             transition={{ duration: 0.2 }}
           >
-            <Card className="shadow-lg border-t-4 border-t-primary">
+            <Card
+              className="shadow-lg border-t-4 border-t-primary bg-card/90 border-border/60"
+              style={primaryColor ? { borderTopColor: primaryColor } : undefined}
+            >
               <CardContent className="p-8">
                 <div className="mb-8">
                   <h2 className="text-2xl font-bold font-display mb-2">{step.title}</h2>
@@ -114,10 +168,18 @@ export default function PublicForm() {
                         {field.type === 'text' || field.type === 'email' || field.type === 'number' ? (
                           <div className="relative flex-1">
                             <Input 
-                              {...register(`field_${field.id}`, { required: field.required })}
-                              type={field.type === 'number' ? 'number' : 'text'}
+                              {...register(`field_${field.id}`, {
+                                required: field.required,
+                                minLength: field.validationRules?.minLength ? { value: field.validationRules.minLength, message: `Min ${field.validationRules.minLength} characters` } : undefined,
+                                maxLength: field.validationRules?.maxLength ? { value: field.validationRules.maxLength, message: `Max ${field.validationRules.maxLength} characters` } : undefined,
+                                pattern: field.validationRules?.pattern ? { value: new RegExp(field.validationRules.pattern), message: "Invalid format" } : undefined,
+                                min: field.type === 'number' && field.validationRules?.min != null ? { value: field.validationRules.min, message: `Min ${field.validationRules.min}` } : undefined,
+                                max: field.type === 'number' && field.validationRules?.max != null ? { value: field.validationRules.max, message: `Max ${field.validationRules.max}` } : undefined,
+                              })}
+                              type={field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : 'text'}
                               placeholder={field.placeholder || "Your answer..."}
-                              className="bg-gray-50/50 pr-12"
+                              className="bg-muted/40 border-border/60 pr-12"
+                              onKeyDown={handleEnter}
                             />
                             {/* Voice Input Integration */}
                             <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10">
@@ -133,9 +195,15 @@ export default function PublicForm() {
                         ) : field.type === 'textarea' ? (
                           <div className="relative flex-1">
                             <Textarea 
-                              {...register(`field_${field.id}`, { required: field.required })}
-                              className="bg-gray-50/50 min-h-[120px] pr-12"
+                              {...register(`field_${field.id}`, {
+                                required: field.required,
+                                minLength: field.validationRules?.minLength ? { value: field.validationRules.minLength, message: `Min ${field.validationRules.minLength} characters` } : undefined,
+                                maxLength: field.validationRules?.maxLength ? { value: field.validationRules.maxLength, message: `Max ${field.validationRules.maxLength} characters` } : undefined,
+                                pattern: field.validationRules?.pattern ? { value: new RegExp(field.validationRules.pattern), message: "Invalid format" } : undefined,
+                              })}
+                              className="bg-muted/40 border-border/60 min-h-[120px] pr-12"
                               placeholder={field.placeholder || "Your answer..."}
+                              onKeyDown={handleEnter}
                             />
                             <div className="absolute right-3 bottom-3 z-10">
                                <SimpleVoiceInput onTranscript={(text: string) => {
@@ -169,13 +237,43 @@ export default function PublicForm() {
                              />
                              <Label htmlFor={`field_${field.id}`}>{field.placeholder || 'Check this box'}</Label>
                            </div>
+                        ) : field.type === 'file' ? (
+                          <Input
+                            {...register(`field_${field.id}`, {
+                              required: field.required,
+                              validate: (value: FileList) => {
+                                if (!value || value.length === 0) return true;
+                                const maxFiles = field.validationRules?.maxFiles ?? 3;
+                                const maxSizeMb = field.validationRules?.maxSizeMb ?? 10;
+                                if (value.length > maxFiles) return `Max ${maxFiles} files`;
+                                const maxSize = maxSizeMb * 1024 * 1024;
+                                for (const file of Array.from(value)) {
+                                  if (file.size > maxSize) return `Max ${maxSizeMb}MB per file`;
+                                }
+                                return true;
+                              },
+                            })}
+                            type="file"
+                            className="bg-muted/40 border-border/60"
+                            multiple={(field.validationRules?.maxFiles ?? 3) > 1}
+                            onKeyDown={handleEnter}
+                          />
+                        ) : field.type === 'date' ? (
+                          <Input
+                            {...register(`field_${field.id}`, { required: field.required })}
+                            type="date"
+                            className="bg-muted/40 border-border/60"
+                            onKeyDown={handleEnter}
+                          />
                         ) : (
-                          <Input {...register(`field_${field.id}`, { required: field.required })} />
+                          <Input {...register(`field_${field.id}`, { required: field.required })} onKeyDown={handleEnter} />
                         )}
                       </div>
                       
                       {errors[`field_${field.id}`] && (
-                        <p className="text-sm text-red-500">This field is required</p>
+                        <p className="text-sm text-red-500">
+                          {(errors as any)[`field_${field.id}`]?.message || "This field is required"}
+                        </p>
                       )}
                     </div>
                   ))}
@@ -195,7 +293,13 @@ export default function PublicForm() {
             <ChevronLeft className="mr-2 h-4 w-4" /> Previous
           </Button>
 
-          <Button onClick={onNext} size="lg" className="px-8" disabled={submit.isPending}>
+          <Button
+            onClick={onNext}
+            size="lg"
+            className="px-8"
+            style={primaryColor ? { backgroundColor: primaryColor, color: "#0b0f14" } : undefined}
+            disabled={submit.isPending}
+          >
             {submit.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isLastStep ? "Submit" : "Next"} {!isLastStep && <ChevronRight className="ml-2 h-4 w-4" />}
           </Button>

@@ -1,12 +1,11 @@
 package com.formweaverai.repository;
 
 import com.formweaverai.model.FormField;
-import com.formweaverai.model.FormStep;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.List;
 
-public interface FormFieldRepository extends JpaRepository<FormField, Long> {
-  List<FormField> findAllByStepOrderByOrderIndexAsc(FormStep step);
-  long countByStep(FormStep step);
+public interface FormFieldRepository extends MongoRepository<FormField, String> {
+  List<FormField> findAllByStepIdOrderByOrderIndexAsc(String stepId);
+  long countByStepId(String stepId);
 }

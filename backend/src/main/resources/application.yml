@@ -2,18 +2,15 @@ server:
   port: 8080
 
 spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/form_weaver?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-    username: hibernate
-    password: haindav@1
-  jpa:
-    hibernate:
-      ddl-auto: update
-    properties:
-      hibernate:
-        format_sql: true
-    open-in-view: false
+  data:
+    mongodb:
+      uri: ${MONGODB_URI}
+      database: ${MONGODB_DATABASE:form_weaver}
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 25MB
 
 logging:
   level:
-    org.hibernate.SQL: info
+    org.springframework.data.mongodb: debug

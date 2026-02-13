@@ -48,7 +48,7 @@ export function useTotalSubmissions() {
   });
 }
 
-export function useFormSubmissionsCount(formId: number) {
+export function useFormSubmissionsCount(formId: string) {
   return useQuery({
     queryKey: ["analytics", "form-submissions-count", formId],
     queryFn: async () => {

@@ -3,8 +3,8 @@ package com.formweaverai.dto;
 import java.util.List;
 
 public record StepDto(
-  Long id,
-  Long formId,
+  String id,
+  String formId,
   String title,
   String description,
   Integer orderIndex,

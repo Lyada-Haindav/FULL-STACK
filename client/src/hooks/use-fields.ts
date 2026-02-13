@@ -8,7 +8,7 @@ export function useCreateField() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ stepId, formId, ...data }: { stepId: number; formId: number } & CreateFieldRequest) => {
+    mutationFn: async ({ stepId, formId, ...data }: { stepId: string; formId: string } & CreateFieldRequest) => {
       const url = buildUrl(api.fields.create.path, { stepId });
       const res = await fetch(url, {
         method: api.fields.create.method,
@@ -29,7 +29,7 @@ export function useUpdateField() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, formId, ...data }: { id: number; formId: number } & UpdateFieldRequest) => {
+    mutationFn: async ({ id, formId, ...data }: { id: string; formId: string } & UpdateFieldRequest) => {
       const url = buildUrl(api.fields.update.path, { id });
       const res = await fetch(url, {
         method: api.fields.update.method,
@@ -50,7 +50,7 @@ export function useDeleteField() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, formId }: { id: number; formId: number }) => {
+    mutationFn: async ({ id, formId }: { id: string; formId: string }) => {
       const url = buildUrl(api.fields.delete.path, { id });
       const res = await fetch(url, { method: api.fields.delete.method, headers: { ...authHeaders() } });
       if (!res.ok) throw new Error("Failed to delete field");
@@ -66,7 +66,7 @@ export function useReorderFields() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ stepId, formId, fields }: { stepId: number; formId: number; fields: { id: number; orderIndex: number }[] }) => {
+    mutationFn: async ({ stepId, formId, fields }: { stepId: string; formId: string; fields: { id: string; orderIndex: number }[] }) => {
       const url = buildUrl(api.fields.reorder.path, { stepId });
       const res = await fetch(url, {
         method: api.fields.reorder.method,

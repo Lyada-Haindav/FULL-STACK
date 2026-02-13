@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useForms, useCreateForm, useGenerateFormAI, useCreateCompleteForm, useDeleteForm, usePublishForm } from "@/hooks/use-forms";
+import { useForms, useForm, useCreateForm, useGenerateFormAI, useCreateCompleteForm, useDeleteForm, usePublishForm, useCloneForm } from "@/hooks/use-forms";
 import { useSubmissions } from "@/hooks/use-submissions";
 import { useTotalSubmissions, useFormSubmissionsCount } from "@/hooks/use-analytics";
 import { useLocation } from "wouter";
@@ -41,6 +41,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
+import { normalizeTemplateConfig } from "@/lib/legacy-config";
 import {
   Table,
   TableBody,
@@ -56,9 +57,10 @@ export default function Dashboard() {
   const createCompleteMutation = useCreateCompleteForm();
   const deleteFormMutation = useDeleteForm();
   const publishMutation = usePublishForm();
+  const cloneFormMutation = useCloneForm();
   const [location, setLocation] = useLocation();
-  const [selectedFormId, setSelectedFormId] = useState<number | null>(null);
-  const [publishingId, setPublishingId] = useState<number | null>(null);
+  const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
+  const [publishingId, setPublishingId] = useState<string | null>(null);
   const shouldOpenCreate = location === "/dashboard/new";
   const [createOpen, setCreateOpen] = useState(shouldOpenCreate);
 
@@ -108,7 +110,7 @@ export default function Dashboard() {
   const totalForms = forms?.length || 0;
 
   const handleUseTemplate = async (template: any) => {
-    const config = template.config as any;
+    const config = normalizeTemplateConfig(template.config) as any;
     const steps = Array.isArray(config?.steps) ? config.steps.map((step: any) => ({
       title: step.title || "Untitled Step",
       description: step.description || "",
@@ -128,12 +130,19 @@ export default function Dashboard() {
     setLocation(`/builder/${form.id}`);
   };
   
-  const handleTogglePublish = async (formId: number) => {
+  const handleTogglePublish = async (formId: string) => {
     setPublishingId(formId);
     try {
       await publishMutation.mutateAsync(formId);
     } finally {
       setPublishingId(null);
+    }
+  };
+
+  const handleClone = async (formId: string) => {
+    const cloned = await cloneFormMutation.mutateAsync(formId);
+    if (cloned?.id) {
+      setLocation(`/builder/${cloned.id}`);
     }
   };
 
@@ -173,6 +182,7 @@ export default function Dashboard() {
                   onViewSubmissions={() => setSelectedFormId(form.id)}
                   onDelete={() => deleteFormMutation.mutate(form.id)}
                   onTogglePublish={() => handleTogglePublish(form.id)}
+                  onClone={() => handleClone(form.id)}
                   isPublishing={publishingId === form.id}
                 />
               ))}
@@ -198,22 +208,33 @@ export default function Dashboard() {
   );
 }
 
-function SubmissionsView({ formId }: { formId: number }) {
+function SubmissionsView({ formId }: { formId: string }) {
+  const { data: form } = useForm(formId);
   const { data: submissions, isLoading } = useSubmissions(formId);
 
   const downloadCSV = () => {
     if (!submissions || submissions.length === 0) return;
 
+    const fieldLabelMap: Record<string, string> = {};
+    form?.steps?.forEach((step: any) => {
+      step.fields?.forEach((field: any) => {
+        fieldLabelMap[`field_${field.id}`] = field.label || `field_${field.id}`;
+      });
+    });
+
     // Get all unique keys from all submissions
     const keys = Array.from(new Set(submissions.flatMap(s => Object.keys(s.data as object))));
     
-    const headers = ["Submitted At", ...keys];
+    const headers = ["Submitted At", ...keys.map((key) => fieldLabelMap[key] || key)];
     const rows = submissions.map(s => {
       const data = s.data as Record<string, any>;
       return [
         format(new Date(s.submittedAt), 'yyyy-MM-dd HH:mm:ss'),
         ...keys.map(k => {
           const val = data[k];
+          if (val && typeof val === 'object' && val.type === 'file' && Array.isArray(val.files)) {
+            return val.files.map((file: any) => file?.name || file?.id).join("; ");
+          }
           return typeof val === 'object' ? JSON.stringify(val) : val;
         })
       ];
@@ -255,14 +276,30 @@ function SubmissionsView({ formId }: { formId: number }) {
     );
   }
 
+  const fieldLabelMap: Record<string, string> = {};
+  form?.steps?.forEach((step: any) => {
+    step.fields?.forEach((field: any) => {
+      fieldLabelMap[`field_${field.id}`] = field.label || `field_${field.id}`;
+    });
+  });
+
   const dataKeys = Array.from(new Set(submissions.flatMap(s => Object.keys(s.data as object))));
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
         <Button onClick={downloadCSV} className="gap-2" data-testid="button-download-csv">
           <Download className="w-4 h-4" />
           Download CSV
+        </Button>
+        <Button
+          variant="outline"
+          className="gap-2"
+          onClick={() => window.open(`/api/forms/${formId}/submissions/export`, "_blank")}
+          data-testid="button-download-zip"
+        >
+          <Download className="w-4 h-4" />
+          Download All Files
         </Button>
       </div>
 
@@ -272,7 +309,7 @@ function SubmissionsView({ formId }: { formId: number }) {
             <TableRow>
               <TableHead>Date</TableHead>
               {dataKeys.map(key => (
-                <TableHead key={key} className="capitalize">{key}</TableHead>
+                <TableHead key={key} className="capitalize">{fieldLabelMap[key] || key}</TableHead>
               ))}
             </TableRow>
           </TableHeader>
@@ -284,6 +321,36 @@ function SubmissionsView({ formId }: { formId: number }) {
                 </TableCell>
                 {dataKeys.map(key => {
                   const val = (submission.data as any)[key];
+                  if (val && typeof val === 'object' && val.type === 'file' && Array.isArray(val.files)) {
+                    return (
+                      <TableCell key={key} className="space-y-1">
+                        {val.files.map((file: any) => {
+                          return (
+                            <div key={file.id} className="flex items-center gap-2">
+                              <a
+                                href={`/api/files/${file.id}`}
+                                className="text-primary underline-offset-4 hover:underline"
+                                download
+                              >
+                                {file.name || "Download file"}
+                              </a>
+                              <a
+                                href={`/api/files/${file.id}?inline=1`}
+                                className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-colors"
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                View
+                              </a>
+                              <span className="text-xs text-muted-foreground">
+                                {file.size ? `${Math.round(file.size / 1024)} KB` : ""}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </TableCell>
+                    );
+                  }
                   return (
                     <TableCell key={key}>
                       {typeof val === 'boolean' ? (val ? 'Yes' : 'No') : String(val ?? '-')}
@@ -320,12 +387,14 @@ function FormCard({
   onViewSubmissions,
   onDelete,
   onTogglePublish,
+  onClone,
   isPublishing,
 }: {
   form: any,
   onViewSubmissions: () => void,
   onDelete: () => void,
   onTogglePublish: () => void,
+  onClone: () => void,
   isPublishing: boolean,
 }) {
   const [_, setLocation] = useLocation();
@@ -356,6 +425,7 @@ function FormCard({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => setLocation(`/builder/${form.id}`)}>Edit</DropdownMenuItem>
+                <DropdownMenuItem onClick={onClone}>Duplicate</DropdownMenuItem>
                 <DropdownMenuItem onClick={onViewSubmissions}>Submissions</DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <ShareFormDialog 

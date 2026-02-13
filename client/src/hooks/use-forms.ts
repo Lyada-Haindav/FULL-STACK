@@ -15,7 +15,7 @@ export function useForms() {
   });
 }
 
-export function useForm(id: number) {
+export function useForm(id: string) {
   return useQuery({
     queryKey: [api.forms.get.path, id],
     queryFn: async () => {
@@ -63,7 +63,7 @@ export function useUpdateForm() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: number } & UpdateFormRequest) => {
+    mutationFn: async ({ id, ...updates }: { id: string } & UpdateFormRequest) => {
       const url = buildUrl(api.forms.update.path, { id });
       const res = await fetch(url, {
         method: api.forms.update.method,
@@ -86,7 +86,7 @@ export function useDeleteForm() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: string) => {
       const url = `/api/forms/${id}/delete`;
       const res = await fetch(url, { method: "POST" });
       if (!res.ok) throw new Error("Failed to delete form");
@@ -103,7 +103,7 @@ export function usePublishForm() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: string) => {
       const url = buildUrl(api.forms.publish.path, { id });
       const res = await fetch(url, { method: api.forms.publish.method, headers: { ...authHeaders() } });
       if (!res.ok) throw new Error("Failed to publish form");
@@ -117,6 +117,25 @@ export function usePublishForm() {
       } else {
         toast({ title: "Form Unpublished", description: "Your form is now hidden and no longer accepts submissions." });
       }
+    },
+  });
+}
+
+export function useCloneForm() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const url = `/api/forms/${id}/clone`;
+      const res = await fetch(url, { method: "POST", headers: { ...authHeaders() } });
+      if (!res.ok) throw new Error("Failed to clone form");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [api.forms.list.path] });
+      toast({ title: "Form duplicated", description: "A copy has been created." });
+      return data;
     },
   });
 }

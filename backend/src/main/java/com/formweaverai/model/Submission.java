@@ -1,39 +1,33 @@
 package com.formweaverai.model;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.formweaverai.util.JsonNodeConverter;
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.Instant;
 
-@Entity
-@Table(name = "submissions")
+@Document(collection = "submissions")
 public class Submission {
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+  private String id;
 
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "form_id", nullable = false)
-  private Form form;
+  @Field("form_id")
+  private String formId;
 
-  @Convert(converter = JsonNodeConverter.class)
-  @Column(nullable = false, columnDefinition = "json")
-  private JsonNode data;
+  private Object data;
 
-  @Column(name = "submitted_at", nullable = false)
+  @Field("submitted_at")
   private Instant submittedAt;
 
-  @PrePersist
-  void onCreate() {
+  public Submission() {
     submittedAt = Instant.now();
   }
 
-  public Long getId() { return id; }
-  public void setId(Long id) { this.id = id; }
-  public Form getForm() { return form; }
-  public void setForm(Form form) { this.form = form; }
-  public JsonNode getData() { return data; }
-  public void setData(JsonNode data) { this.data = data; }
+  public String getId() { return id; }
+  public void setId(String id) { this.id = id; }
+  public String getFormId() { return formId; }
+  public void setFormId(String formId) { this.formId = formId; }
+  public Object getData() { return data; }
+  public void setData(Object data) { this.data = data; }
   public Instant getSubmittedAt() { return submittedAt; }
 }

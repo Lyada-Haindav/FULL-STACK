@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -9,26 +9,27 @@ export * from "./models/chat";
 // === TABLE DEFINITIONS ===
 
 export const forms = pgTable("forms", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey(),
   userId: text("user_id").notNull(), // Linked to auth.users.id
   title: text("title").notNull(),
   description: text("description"),
   isPublished: boolean("is_published").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  theme: jsonb("theme"),
 });
 
 export const formSteps = pgTable("form_steps", {
-  id: serial("id").primaryKey(),
-  formId: integer("form_id").notNull().references(() => forms.id, { onDelete: "cascade" }),
+  id: text("id").primaryKey(),
+  formId: text("form_id").notNull().references(() => forms.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   description: text("description"),
   orderIndex: integer("order_index").notNull(),
 });
 
 export const formFields = pgTable("form_fields", {
-  id: serial("id").primaryKey(),
-  stepId: integer("step_id").notNull().references(() => formSteps.id, { onDelete: "cascade" }),
+  id: text("id").primaryKey(),
+  stepId: text("step_id").notNull().references(() => formSteps.id, { onDelete: "cascade" }),
   type: text("type").notNull(), // text, number, select, radio, date, etc.
   label: text("label").notNull(),
   placeholder: text("placeholder"),
@@ -40,14 +41,14 @@ export const formFields = pgTable("form_fields", {
 });
 
 export const submissions = pgTable("submissions", {
-  id: serial("id").primaryKey(),
-  formId: integer("form_id").notNull().references(() => forms.id, { onDelete: "cascade" }),
+  id: text("id").primaryKey(),
+  formId: text("form_id").notNull().references(() => forms.id, { onDelete: "cascade" }),
   data: jsonb("data").notNull(), // The actual answers
   submittedAt: timestamp("submitted_at").defaultNow().notNull(),
 });
 
 export const templates = pgTable("templates", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description").notNull(),
   icon: text("icon").notNull(), // lucide icon name

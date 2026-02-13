@@ -1,50 +1,44 @@
 package com.formweaverai.model;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 import java.time.Instant;
 
-@Entity
-@Table(name = "app_users")
+@Document(collection = "app_users")
 public class AppUser {
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+  private String id;
 
-  @Column(nullable = false, unique = true)
+  @Field("email")
   private String email;
 
-  @Column(name = "password_hash", nullable = false)
+  @Field("password_hash")
   private String passwordHash;
 
-  @Column(name = "first_name")
+  @Field("first_name")
   private String firstName;
 
-  @Column(name = "last_name")
+  @Field("last_name")
   private String lastName;
 
-  @Column(name = "profile_image_url")
+  @Field("profile_image_url")
   private String profileImageUrl;
 
-  @Column(name = "created_at", nullable = false)
+  @Field("created_at")
   private Instant createdAt;
 
-  @Column(name = "updated_at", nullable = false)
+  @Field("updated_at")
   private Instant updatedAt;
 
-  @PrePersist
-  void onCreate() {
+  public AppUser() {
     Instant now = Instant.now();
-    createdAt = now;
-    updatedAt = now;
+    this.createdAt = now;
+    this.updatedAt = now;
   }
 
-  @PreUpdate
-  void onUpdate() {
-    updatedAt = Instant.now();
-  }
-
-  public Long getId() { return id; }
-  public void setId(Long id) { this.id = id; }
+  public String getId() { return id; }
+  public void setId(String id) { this.id = id; }
   public String getEmail() { return email; }
   public void setEmail(String email) { this.email = email; }
   public String getPasswordHash() { return passwordHash; }

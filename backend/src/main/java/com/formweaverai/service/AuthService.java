@@ -44,7 +44,7 @@ public class AuthService {
       .map(user -> new AuthResponse(jwtService.generateToken(user.getId(), user.getEmail()), toDto(user)));
   }
 
-  public Optional<UserDto> getUser(Long userId) {
+  public Optional<UserDto> getUser(String userId) {
     return userRepository.findById(userId).map(this::toDto);
   }
 

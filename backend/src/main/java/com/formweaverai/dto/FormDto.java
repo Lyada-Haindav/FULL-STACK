@@ -3,11 +3,12 @@ package com.formweaverai.dto;
 import java.time.Instant;
 
 public record FormDto(
-  Long id,
+  String id,
   String userId,
   String title,
   String description,
   boolean isPublished,
   Instant createdAt,
-  Instant updatedAt
+  Instant updatedAt,
+  Object theme
 ) {}
