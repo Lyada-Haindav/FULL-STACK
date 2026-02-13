@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://formweaver-backend.onrender.com/api/$1" }
+    { "source": "/api/(.*)", "destination": "https://full-stack-99bn.onrender.com/api/$1" }
   ],
   "buildCommand": "npm run build",
   "outputDirectory": "dist/public",
