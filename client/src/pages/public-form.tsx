@@ -22,7 +22,10 @@ export default function PublicForm() {
   const [currentStep, setCurrentStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
 
-  const { register, handleSubmit, setValue, formState: { errors }, trigger, getValues } = useReactForm();
+  const { register, handleSubmit, setValue, formState: { errors }, trigger, getValues } = useReactForm({
+    mode: "onChange",
+    reValidateMode: "onChange",
+  });
 
   if (isLoading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin" /></div>;
   if (!form) return <div className="h-screen flex items-center justify-center text-muted-foreground">Form not found or unpublished.</div>;
