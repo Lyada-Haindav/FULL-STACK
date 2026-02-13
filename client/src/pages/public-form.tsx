@@ -168,7 +168,7 @@ export default function PublicForm() {
                       </Label>
                       
                       <div className="flex gap-2">
-                        {field.type === 'text' || field.type === 'email' || field.type === 'number' ? (
+                        {field.type === 'text' || field.type === 'email' || field.type === 'number' || field.type === 'phone' || field.type === 'tel' || field.type === 'url' || field.type === 'link' ? (
                           <div className="relative flex-1">
                             <Input 
                               {...register(`field_${field.id}`, {
@@ -179,7 +179,11 @@ export default function PublicForm() {
                                   ? { value: new RegExp(field.validationRules.pattern), message: "Invalid format" }
                                   : field.type === "email"
                                     ? { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Enter a valid email" }
-                                    : undefined,
+                                    : field.type === "phone" || field.type === "tel"
+                                      ? { value: /^\+?[0-9][0-9\s\-().]{6,}[0-9]$/, message: "Enter a valid phone number" }
+                                      : field.type === "url" || field.type === "link"
+                                        ? { value: /^(https?:\/\/)?([^\s.]+\.)*[^\s.]+\.[^\s]{2,}(\/\S*)?$/, message: "Enter a valid URL" }
+                                        : undefined,
                                 min: field.type === 'number' && field.validationRules?.min != null ? { value: field.validationRules.min, message: `Min ${field.validationRules.min}` } : undefined,
                                 max: field.type === 'number' && field.validationRules?.max != null ? { value: field.validationRules.max, message: `Max ${field.validationRules.max}` } : undefined,
                                 onChange: () => {
@@ -187,7 +191,17 @@ export default function PublicForm() {
                                   trigger(fieldName);
                                 },
                               })}
-                              type={field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : 'text'}
+                              type={
+                                field.type === 'number'
+                                  ? 'number'
+                                  : field.type === 'email'
+                                    ? 'email'
+                                    : field.type === 'phone' || field.type === 'tel'
+                                      ? 'tel'
+                                      : field.type === 'url' || field.type === 'link'
+                                        ? 'url'
+                                        : 'text'
+                              }
                               placeholder={field.placeholder || "Your answer..."}
                               className="bg-muted/40 border-border/60 pr-12"
                               onKeyDown={handleEnter}
