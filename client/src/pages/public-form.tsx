@@ -175,9 +175,17 @@ export default function PublicForm() {
                                 required: field.required,
                                 minLength: field.validationRules?.minLength ? { value: field.validationRules.minLength, message: `Min ${field.validationRules.minLength} characters` } : undefined,
                                 maxLength: field.validationRules?.maxLength ? { value: field.validationRules.maxLength, message: `Max ${field.validationRules.maxLength} characters` } : undefined,
-                                pattern: field.validationRules?.pattern ? { value: new RegExp(field.validationRules.pattern), message: "Invalid format" } : undefined,
+                                pattern: field.validationRules?.pattern
+                                  ? { value: new RegExp(field.validationRules.pattern), message: "Invalid format" }
+                                  : field.type === "email"
+                                    ? { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Enter a valid email" }
+                                    : undefined,
                                 min: field.type === 'number' && field.validationRules?.min != null ? { value: field.validationRules.min, message: `Min ${field.validationRules.min}` } : undefined,
                                 max: field.type === 'number' && field.validationRules?.max != null ? { value: field.validationRules.max, message: `Max ${field.validationRules.max}` } : undefined,
+                                onChange: () => {
+                                  const fieldName = `field_${field.id}`;
+                                  trigger(fieldName);
+                                },
                               })}
                               type={field.type === 'number' ? 'number' : field.type === 'email' ? 'email' : 'text'}
                               placeholder={field.placeholder || "Your answer..."}
@@ -203,6 +211,10 @@ export default function PublicForm() {
                                 minLength: field.validationRules?.minLength ? { value: field.validationRules.minLength, message: `Min ${field.validationRules.minLength} characters` } : undefined,
                                 maxLength: field.validationRules?.maxLength ? { value: field.validationRules.maxLength, message: `Max ${field.validationRules.maxLength} characters` } : undefined,
                                 pattern: field.validationRules?.pattern ? { value: new RegExp(field.validationRules.pattern), message: "Invalid format" } : undefined,
+                                onChange: () => {
+                                  const fieldName = `field_${field.id}`;
+                                  trigger(fieldName);
+                                },
                               })}
                               className="bg-muted/40 border-border/60 min-h-[120px] pr-12"
                               placeholder={field.placeholder || "Your answer..."}
@@ -255,6 +267,10 @@ export default function PublicForm() {
                                 }
                                 return true;
                               },
+                              onChange: () => {
+                                const fieldName = `field_${field.id}`;
+                                trigger(fieldName);
+                              },
                             })}
                             type="file"
                             className="bg-muted/40 border-border/60"
@@ -263,13 +279,28 @@ export default function PublicForm() {
                           />
                         ) : field.type === 'date' ? (
                           <Input
-                            {...register(`field_${field.id}`, { required: field.required })}
+                            {...register(`field_${field.id}`, {
+                              required: field.required,
+                              onChange: () => {
+                                const fieldName = `field_${field.id}`;
+                                trigger(fieldName);
+                              },
+                            })}
                             type="date"
                             className="bg-muted/40 border-border/60"
                             onKeyDown={handleEnter}
                           />
                         ) : (
-                          <Input {...register(`field_${field.id}`, { required: field.required })} onKeyDown={handleEnter} />
+                          <Input
+                            {...register(`field_${field.id}`, {
+                              required: field.required,
+                              onChange: () => {
+                                const fieldName = `field_${field.id}`;
+                                trigger(fieldName);
+                              },
+                            })}
+                            onKeyDown={handleEnter}
+                          />
                         )}
                       </div>
                       
