@@ -1,6 +1,6 @@
 import { useParams, Link } from "wouter";
 import { useForm, useUpdateForm, usePublishForm } from "@/hooks/use-forms";
-import { useCreateStep } from "@/hooks/use-steps";
+import { useCreateStep, useUpdateStep } from "@/hooks/use-steps";
 import { useCreateField, useUpdateField, useDeleteField, useReorderFields } from "@/hooks/use-fields";
 import { LayoutShell } from "@/components/layout-shell";
 import { Button } from "@/components/ui/button";
@@ -44,7 +44,10 @@ export default function FormBuilder() {
   const { data: form, isLoading } = useForm(formId);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const [theme, setTheme] = useState<any>({});
+  const [stepTitleDraft, setStepTitleDraft] = useState("");
+  const [stepDescriptionDraft, setStepDescriptionDraft] = useState("");
   const updateForm = useUpdateForm();
+  const updateStep = useUpdateStep();
   
   useEffect(() => {
     if (form) {
@@ -56,6 +59,36 @@ export default function FormBuilder() {
   if (!form) return <div>Form not found</div>;
 
   const currentStep = form.steps[activeStepIndex];
+
+  useEffect(() => {
+    if (!currentStep) {
+      setStepTitleDraft("");
+      setStepDescriptionDraft("");
+      return;
+    }
+    setStepTitleDraft(currentStep.title || "");
+    setStepDescriptionDraft(currentStep.description || "");
+  }, [currentStep?.id, currentStep?.title, currentStep?.description]);
+
+  const persistCurrentStep = () => {
+    if (!currentStep) return;
+
+    const normalizedTitle = stepTitleDraft.trim() || "Untitled Step";
+    const normalizedDescription = stepDescriptionDraft.trim();
+    const existingTitle = currentStep.title || "";
+    const existingDescription = currentStep.description || "";
+
+    if (normalizedTitle === existingTitle && normalizedDescription === existingDescription) {
+      return;
+    }
+
+    updateStep.mutate({
+      id: currentStep.id,
+      formId,
+      title: normalizedTitle,
+      description: normalizedDescription,
+    });
+  };
 
   const saveTheme = (next: any) => {
     setTheme(next);
@@ -103,7 +136,12 @@ export default function FormBuilder() {
                 <div 
                   key={step.id}
                   className={`flex items-center gap-3 px-3 py-3 rounded-lg cursor-pointer transition-colors ${idx === activeStepIndex ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted text-muted-foreground'}`}
-                  onClick={() => setActiveStepIndex(idx)}
+                  onClick={() => {
+                    if (idx !== activeStepIndex) {
+                      persistCurrentStep();
+                    }
+                    setActiveStepIndex(idx);
+                  }}
                 >
                   <div className={`h-6 w-6 rounded flex items-center justify-center text-xs border ${idx === activeStepIndex ? 'border-primary bg-primary text-white' : 'border-border bg-background'}`}>
                     {idx + 1}
@@ -123,12 +161,18 @@ export default function FormBuilder() {
             <Card className="shadow-none border-border/50">
               <div className="p-6 space-y-4">
                 <Input 
-                  value={currentStep?.title || ""} 
+                  value={stepTitleDraft}
+                  onChange={(e) => setStepTitleDraft(e.target.value)}
+                  onBlur={persistCurrentStep}
+                  disabled={!currentStep}
                   className="text-2xl font-bold border-none shadow-none px-0 h-auto focus-visible:ring-0" 
                   placeholder="Step Title"
                 />
                 <Textarea 
-                  value={currentStep?.description || ""} 
+                  value={stepDescriptionDraft}
+                  onChange={(e) => setStepDescriptionDraft(e.target.value)}
+                  onBlur={persistCurrentStep}
+                  disabled={!currentStep}
                   className="resize-none border-none shadow-none px-0 focus-visible:ring-0 min-h-[60px] text-muted-foreground" 
                   placeholder="Add a description for this step..."
                 />
