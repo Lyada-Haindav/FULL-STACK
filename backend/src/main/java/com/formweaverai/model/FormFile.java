@@ -1,6 +1,7 @@
 package com.formweaverai.model;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
@@ -12,9 +13,11 @@ public class FormFile {
   private String id;
 
   @Field("form_id")
+  @Indexed(name = "files_form_idx")
   private String formId;
 
   @Field("submission_id")
+  @Indexed(name = "files_submission_idx")
   private String submissionId;
 
   @Field("field_id")

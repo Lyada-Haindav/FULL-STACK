@@ -8,4 +8,5 @@ import java.util.List;
 public interface FormFileRepository extends MongoRepository<FormFile, String> {
   List<FormFile> findAllBySubmissionId(String submissionId);
   List<FormFile> findAllByFormId(String formId);
+  void deleteAllByFormId(String formId);
 }

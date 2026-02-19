@@ -1,7 +1,5 @@
 package com.formweaverai.security;
 
-import com.formweaverai.model.AppUser;
-import com.formweaverai.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,11 +16,9 @@ import java.io.IOException;
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
   private final JwtService jwtService;
-  private final UserRepository userRepository;
 
-  public JwtAuthFilter(JwtService jwtService, UserRepository userRepository) {
+  public JwtAuthFilter(JwtService jwtService) {
     this.jwtService = jwtService;
-    this.userRepository = userRepository;
   }
 
   @Override
@@ -38,10 +34,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     String token = authHeader.substring(7);
     try {
       String userId = jwtService.parseUserId(token);
-      AppUser user = userRepository.findById(userId).orElse(null);
-      if (user != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+      if (StringUtils.hasText(userId) && SecurityContextHolder.getContext().getAuthentication() == null) {
         UsernamePasswordAuthenticationToken authentication =
-          new UsernamePasswordAuthenticationToken(user.getId().toString(), null, java.util.List.of());
+          new UsernamePasswordAuthenticationToken(userId, null, java.util.List.of());
         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authentication);
       }

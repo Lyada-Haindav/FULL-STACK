@@ -6,6 +6,7 @@ spring:
     mongodb:
       uri: ${MONGODB_URI}
       database: ${MONGODB_DATABASE:form_weaver}
+      auto-index-creation: true
   servlet:
     multipart:
       max-file-size: 25MB
@@ -13,4 +14,4 @@ spring:
 
 logging:
   level:
-    org.springframework.data.mongodb: debug
+    org.springframework.data.mongodb: warn

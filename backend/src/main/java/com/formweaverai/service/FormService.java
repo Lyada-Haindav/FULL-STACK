@@ -95,25 +95,13 @@ public class FormService {
   public boolean deleteForm(String id) {
     return formRepository.findById(id).map(form -> {
       List<FormStep> steps = stepRepository.findAllByFormIdOrderByOrderIndexAsc(form.getId());
-      for (FormStep step : steps) {
-        List<FormField> fields = fieldRepository.findAllByStepIdOrderByOrderIndexAsc(step.getId());
-        if (!fields.isEmpty()) {
-          fieldRepository.deleteAll(fields);
-        }
-      }
       if (!steps.isEmpty()) {
-        stepRepository.deleteAll(steps);
+        List<String> stepIds = steps.stream().map(FormStep::getId).toList();
+        fieldRepository.deleteAllByStepIdIn(stepIds);
       }
-      List<Submission> submissions = submissionRepository.findAllByFormIdOrderBySubmittedAtDesc(form.getId());
-      if (!submissions.isEmpty()) {
-        for (Submission submission : submissions) {
-          List<FormFile> files = fileRepository.findAllBySubmissionId(submission.getId());
-          if (!files.isEmpty()) {
-            fileRepository.deleteAll(files);
-          }
-        }
-        submissionRepository.deleteAll(submissions);
-      }
+      stepRepository.deleteAllByFormId(form.getId());
+      fileRepository.deleteAllByFormId(form.getId());
+      submissionRepository.deleteAllByFormId(form.getId());
       formRepository.delete(form);
       return true;
     }).orElse(false);
@@ -149,8 +137,9 @@ public class FormService {
         stepIdMap.put(step.getId(), newStep.getId());
       }
 
+      Map<String, List<FormField>> fieldsByStep = fieldsByStepId(steps);
       for (FormStep step : steps) {
-        List<FormField> fields = fieldRepository.findAllByStepIdOrderByOrderIndexAsc(step.getId());
+        List<FormField> fields = fieldsByStep.getOrDefault(step.getId(), List.of());
         for (FormField field : fields) {
           FormField newField = new FormField();
           newField.setStepId(stepIdMap.get(step.getId()));
@@ -204,6 +193,7 @@ public class FormService {
     if (!stepRepository.existsById(stepId)) {
       return false;
     }
+    fieldRepository.deleteAllByStepId(stepId);
     stepRepository.deleteById(stepId);
     return true;
   }
@@ -666,19 +656,21 @@ public class FormService {
   private Map<String, Map<String, Object>> loadFieldRules(String formId) {
     Map<String, Map<String, Object>> rules = new HashMap<>();
     List<FormStep> steps = stepRepository.findAllByFormIdOrderByOrderIndexAsc(formId);
+    Map<String, List<FormField>> fieldsByStep = fieldsByStepId(steps);
     for (FormStep step : steps) {
-      List<FormField> fields = fieldRepository.findAllByStepIdOrderByOrderIndexAsc(step.getId());
+      List<FormField> fields = fieldsByStep.getOrDefault(step.getId(), List.of());
       for (FormField field : fields) {
         Object rawRules = field.getValidationRules();
-        if (rawRules instanceof Map<?, ?> map) {
-          Map<String, Object> cast = new HashMap<>();
-          for (Map.Entry<?, ?> entry : map.entrySet()) {
-            if (entry.getKey() != null) {
-              cast.put(String.valueOf(entry.getKey()), entry.getValue());
-            }
-          }
-          rules.put("field_" + field.getId(), cast);
+        if (!(rawRules instanceof Map<?, ?> map)) {
+          continue;
         }
+        Map<String, Object> cast = new HashMap<>();
+        for (Map.Entry<?, ?> entry : map.entrySet()) {
+          if (entry.getKey() != null) {
+            cast.put(String.valueOf(entry.getKey()), entry.getValue());
+          }
+        }
+        rules.put("field_" + field.getId(), cast);
       }
     }
     return rules;
@@ -746,10 +738,11 @@ public class FormService {
 
   private FormWithStepsDto toFormWithStepsDto(Form form) {
     List<FormStep> steps = stepRepository.findAllByFormIdOrderByOrderIndexAsc(form.getId());
+    Map<String, List<FormField>> fieldsByStep = fieldsByStepId(steps);
     List<StepDto> stepDtos = new ArrayList<>();
 
     for (FormStep step : steps) {
-      List<FormField> fields = fieldRepository.findAllByStepIdOrderByOrderIndexAsc(step.getId());
+      List<FormField> fields = fieldsByStep.getOrDefault(step.getId(), List.of());
       List<FieldDto> fieldDtos = fields.stream().map(this::toFieldDto).toList();
       stepDtos.add(toStepDto(step, fieldDtos));
     }
@@ -776,6 +769,20 @@ public class FormService {
       step.getOrderIndex(),
       fields
     );
+  }
+
+  private Map<String, List<FormField>> fieldsByStepId(List<FormStep> steps) {
+    if (steps == null || steps.isEmpty()) {
+      return Map.of();
+    }
+    List<String> stepIds = steps.stream().map(FormStep::getId).toList();
+    List<FormField> fields = fieldRepository.findAllByStepIdIn(stepIds);
+    Map<String, List<FormField>> fieldsByStep = new HashMap<>();
+    for (FormField field : fields) {
+      fieldsByStep.computeIfAbsent(field.getStepId(), ignored -> new ArrayList<>()).add(field);
+    }
+    fieldsByStep.values().forEach(list -> list.sort(java.util.Comparator.comparing(FormField::getOrderIndex)));
+    return fieldsByStep;
   }
 
   private FieldDto toFieldDto(FormField field) {

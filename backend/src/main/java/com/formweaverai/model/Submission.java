@@ -1,12 +1,14 @@
 package com.formweaverai.model;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.Instant;
 
 @Document(collection = "submissions")
+@CompoundIndex(name = "submissions_form_date_idx", def = "{'form_id': 1, 'submitted_at': -1}")
 public class Submission {
   @Id
   private String id;

@@ -6,7 +6,7 @@ import com.formweaverai.repository.SubmissionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -32,7 +32,7 @@ public class SubmissionService {
 
     public long getRecentSubmissionsCount() {
         // Count submissions from the last 30 days
-        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+        Instant thirtyDaysAgo = Instant.now().minusSeconds(30L * 24 * 60 * 60);
         return submissionRepository.countBySubmittedAtAfter(thirtyDaysAgo);
     }
 

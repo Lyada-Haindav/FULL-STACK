@@ -7,5 +7,6 @@ import java.util.List;
 
 public interface FormStepRepository extends MongoRepository<FormStep, String> {
   List<FormStep> findAllByFormIdOrderByOrderIndexAsc(String formId);
+  void deleteAllByFormId(String formId);
   long countByFormId(String formId);
 }

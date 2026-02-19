@@ -1,10 +1,12 @@
 package com.formweaverai.model;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 @Document(collection = "form_steps")
+@CompoundIndex(name = "steps_form_order_idx", def = "{'form_id': 1, 'order_index': 1}")
 public class FormStep {
   @Id
   private String id;
