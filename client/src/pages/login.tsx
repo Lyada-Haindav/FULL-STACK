@@ -54,6 +54,7 @@ export default function LoginPage() {
         variant: "default",
       });
       setMode("login");
+      setShowResendVerification(true);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Registration failed. Please try again.";
       toast({ title: "Registration failed", description: message, variant: "destructive" });
@@ -184,26 +185,31 @@ export default function LoginPage() {
                 >
                   {isSendingForgotPassword ? "Sending..." : "Forgot password?"}
                 </Button>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    if (!email) {
+                      toast({ title: "Email required", description: "Enter your email first.", variant: "destructive" });
+                      return;
+                    }
+                    try {
+                      await resendVerification({ email });
+                      toast({ title: "Verification sent", description: "Check your inbox for the new verification email." });
+                    } catch (error) {
+                      toast({
+                        title: "Resend failed",
+                        description: error instanceof Error ? error.message : "Could not resend verification email.",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  disabled={isResendingVerification}
+                  className="w-full rounded-xl"
+                >
+                  {isResendingVerification ? "Sending..." : "Resend Verification Email"}
+                </Button>
                 {showResendVerification ? (
-                  <Button
-                    variant="outline"
-                    onClick={async () => {
-                      try {
-                        await resendVerification({ email });
-                        toast({ title: "Verification sent", description: "Check your inbox for the new verification email." });
-                      } catch (error) {
-                        toast({
-                          title: "Resend failed",
-                          description: error instanceof Error ? error.message : "Could not resend verification email.",
-                          variant: "destructive",
-                        });
-                      }
-                    }}
-                    disabled={isResendingVerification || !email}
-                    className="w-full rounded-xl"
-                  >
-                    {isResendingVerification ? "Sending..." : "Resend Verification Email"}
-                  </Button>
+                  <p className="text-xs text-[#4f6290]">Your account is not verified yet. Use resend if mail didn&apos;t arrive.</p>
                 ) : null}
               </>
             ) : (

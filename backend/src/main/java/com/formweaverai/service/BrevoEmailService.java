@@ -20,17 +20,20 @@ public class BrevoEmailService {
   private final JavaMailSender mailSender;
   private final TaskExecutor taskExecutor;
   private final String fromEmail;
+  private final String smtpUsername;
   private final String appBaseUrl;
 
   public BrevoEmailService(
     JavaMailSender mailSender,
     @Qualifier("appTaskExecutor") TaskExecutor taskExecutor,
     @Value("${app.mail.from:no-reply@formweaver.local}") String fromEmail,
+    @Value("${spring.mail.username:}") String smtpUsername,
     @Value("${app.base-url:http://localhost:8080}") String appBaseUrl
   ) {
     this.mailSender = mailSender;
     this.taskExecutor = taskExecutor;
     this.fromEmail = fromEmail;
+    this.smtpUsername = smtpUsername == null ? "" : smtpUsername.trim();
     this.appBaseUrl = trimTrailingSlash(appBaseUrl);
     sanitizeBrevoPassword();
   }
@@ -80,7 +83,7 @@ public class BrevoEmailService {
       MimeMessage message = mailSender.createMimeMessage();
       MimeMessageHelper helper = new MimeMessageHelper(message, "UTF-8");
       helper.setTo(recipientEmail);
-      helper.setFrom(fromEmail);
+      helper.setFrom(resolveFromEmail());
       helper.setSubject(subject);
       helper.setText(htmlBody, true);
       mailSender.send(message);
@@ -117,5 +120,16 @@ public class BrevoEmailService {
       .replace(">", "&gt;")
       .replace("\"", "&quot;")
       .replace("'", "&#39;");
+  }
+
+  private String resolveFromEmail() {
+    String configured = fromEmail == null ? "" : fromEmail.trim();
+    if (!configured.isBlank() && !configured.endsWith("@formweaver.local")) {
+      return configured;
+    }
+    if (!smtpUsername.isBlank()) {
+      return smtpUsername;
+    }
+    return "no-reply@formweaver.local";
   }
 }
