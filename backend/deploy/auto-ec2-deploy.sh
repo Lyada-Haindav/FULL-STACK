@@ -19,6 +19,7 @@ Usage:
     [--user ec2-user] \
     [--domain _] \
     [--frontend-build local|remote] \
+    [--skip-setup] \
     [--repo https://github.com/Lyada-Haindav/FULL-STACK.git]
 
 Example:
@@ -37,6 +38,7 @@ KEY_PATH=""
 ENV_PATH=""
 APP_DOMAIN="_"
 FRONTEND_BUILD_MODE="local"
+SKIP_SETUP=0
 REPO_URL="https://github.com/Lyada-Haindav/FULL-STACK.git"
 APP_DIR="/opt/form-weaver"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -67,6 +69,10 @@ while [[ $# -gt 0 ]]; do
     --frontend-build)
       FRONTEND_BUILD_MODE="${2:-}"
       shift 2
+      ;;
+    --skip-setup)
+      SKIP_SETUP=1
+      shift 1
       ;;
     --repo)
       REPO_URL="${2:-}"
@@ -114,14 +120,18 @@ chmod 400 "$KEY_PATH"
 SSH_OPTS=(
   -i "$KEY_PATH"
   -o StrictHostKeyChecking=accept-new
+  -o BatchMode=yes
+  -o ConnectTimeout=20
   -o ServerAliveInterval=30
   -o ServerAliveCountMax=120
 )
-RSYNC_RSH="ssh -i \"$KEY_PATH\" -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 -o ServerAliveCountMax=120"
+RSYNC_RSH="ssh -i \"$KEY_PATH\" -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=120"
 
 echo "1/6 Preparing EC2 host..."
-ssh "${SSH_OPTS[@]}" "$SSH_USER@$HOST" "REPO_URL='$REPO_URL' APP_DIR='$APP_DIR' SSH_USER='$SSH_USER' bash -s" <<'REMOTE'
+ssh "${SSH_OPTS[@]}" "$SSH_USER@$HOST" "REPO_URL='$REPO_URL' APP_DIR='$APP_DIR' SSH_USER='$SSH_USER' SKIP_SETUP='$SKIP_SETUP' bash -s" <<'REMOTE'
 set -euo pipefail
+
+echo "Connected to $(hostname)"
 
 sudo mkdir -p "$APP_DIR"
 sudo chown "$SSH_USER:$SSH_USER" "$APP_DIR"
@@ -133,10 +143,14 @@ else
   git clone "$REPO_URL" "$APP_DIR"
 fi
 
-cd /tmp
-curl -fsSL -o ec2-setup.sh https://raw.githubusercontent.com/Lyada-Haindav/FULL-STACK/main/backend/deploy/ec2-setup.sh
-chmod +x ec2-setup.sh
-./ec2-setup.sh
+if [ "$SKIP_SETUP" != "1" ]; then
+  cd /tmp
+  curl -fsSL -o ec2-setup.sh https://raw.githubusercontent.com/Lyada-Haindav/FULL-STACK/main/backend/deploy/ec2-setup.sh
+  chmod +x ec2-setup.sh
+  ./ec2-setup.sh
+else
+  echo "Skipping EC2 setup (--skip-setup)."
+fi
 REMOTE
 
 if [[ "$FRONTEND_BUILD_MODE" = "local" ]]; then
