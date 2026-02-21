@@ -54,11 +54,8 @@ export default function FormBuilder() {
       setTheme(form?.theme || {});
     }
   }, [form?.theme, form]);
-
-  if (isLoading) return <div>Loading...</div>;
-  if (!form) return <div>Form not found</div>;
-
-  const currentStep = form.steps[activeStepIndex];
+  const steps = form?.steps ?? [];
+  const currentStep = steps[activeStepIndex];
 
   useEffect(() => {
     if (!currentStep) {
@@ -69,6 +66,20 @@ export default function FormBuilder() {
     setStepTitleDraft(currentStep.title || "");
     setStepDescriptionDraft(currentStep.description || "");
   }, [currentStep?.id, currentStep?.title, currentStep?.description]);
+
+  useEffect(() => {
+    if (!form) return;
+    if (steps.length === 0) {
+      if (activeStepIndex !== 0) setActiveStepIndex(0);
+      return;
+    }
+    if (activeStepIndex >= steps.length) {
+      setActiveStepIndex(steps.length - 1);
+    }
+  }, [form, steps.length, activeStepIndex]);
+
+  if (isLoading) return <div>Loading...</div>;
+  if (!form) return <div>Form not found</div>;
 
   const persistCurrentStep = () => {
     if (!currentStep) return;
@@ -132,7 +143,7 @@ export default function FormBuilder() {
           </div>
           <ScrollArea className="flex-1">
             <div className="p-2 space-y-1">
-              {form.steps.map((step, idx) => (
+              {steps.map((step, idx) => (
                 <div 
                   key={step.id}
                   className={`flex items-center gap-3 px-3 py-3 rounded-lg cursor-pointer transition-colors ${idx === activeStepIndex ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-muted text-muted-foreground'}`}
@@ -149,7 +160,7 @@ export default function FormBuilder() {
                   <span className="truncate flex-1 text-sm">{step.title}</span>
                 </div>
               ))}
-              <AddStepButton formId={formId} nextIndex={form.steps.length} />
+              <AddStepButton formId={formId} nextIndex={steps.length} />
             </div>
           </ScrollArea>
         </aside>

@@ -499,27 +499,42 @@ function CreateFormDialog({ open, onOpenChange }: { open?: boolean; onOpenChange
   const createCompleteMutation = useCreateCompleteForm();
 
   const handleCreate = async () => {
-    if (activeTab === 'scratch') {
-      if (!title.trim()) {
-        toast({ title: "Form title required", description: "Give your form a name before creating it." });
-        return;
+    try {
+      if (activeTab === 'scratch') {
+        if (!title.trim()) {
+          toast({ title: "Form title required", description: "Give your form a name before creating it." });
+          return;
+        }
+        const res = await createMutation.mutateAsync({ title: title || "New Form", description: "", userId: "dev-user" });
+        setOpen(false);
+        setLocation(`/builder/${res.id}`);
+      } else if (activeTab === 'ai') {
+        if (!prompt.trim()) {
+          toast({ title: "Prompt required", description: "Describe the form you want so AI can generate it." });
+          return;
+        }
+        const generated = await generateMutation.mutateAsync({ prompt, model, complexity, tone });
+        const safeSteps = Array.isArray(generated.steps) && generated.steps.length > 0
+          ? generated.steps
+          : [{
+              title: "Step 1",
+              description: "Auto-generated step",
+              fields: [{ type: "text", label: "Your answer", placeholder: "", required: true, options: [] }],
+            }];
+        const form = await createCompleteMutation.mutateAsync({
+          title: generated.title || "Generated Form",
+          description: generated.description || "",
+          steps: safeSteps,
+        });
+        setOpen(false);
+        setLocation(`/builder/${form.id}`);
       }
-      const res = await createMutation.mutateAsync({ title: title || "New Form", description: "", userId: "dev-user" });
-      setOpen(false);
-      setLocation(`/builder/${res.id}`);
-    } else if (activeTab === 'ai') {
-      if (!prompt.trim()) {
-        toast({ title: "Prompt required", description: "Describe the form you want so AI can generate it." });
-        return;
-      }
-      const generated = await generateMutation.mutateAsync({ prompt, model, complexity, tone });
-      const form = await createCompleteMutation.mutateAsync({
-        title: generated.title,
-        description: generated.description,
-        steps: generated.steps || []
+    } catch (error) {
+      toast({
+        title: "Create failed",
+        description: error instanceof Error ? error.message : "Could not create the form. Please retry.",
+        variant: "destructive",
       });
-      setOpen(false);
-      setLocation(`/builder/${form.id}`);
     }
   };
 
