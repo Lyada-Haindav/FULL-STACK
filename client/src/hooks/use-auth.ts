@@ -29,6 +29,11 @@ async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}
 
   try {
     return await fetch(input, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("Server is taking too long to respond. Please retry in a few seconds.");
+    }
+    throw error;
   } finally {
     window.clearTimeout(timeout);
   }
