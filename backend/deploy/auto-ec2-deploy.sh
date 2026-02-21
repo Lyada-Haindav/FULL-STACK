@@ -43,6 +43,8 @@ REPO_URL="https://github.com/Lyada-Haindav/FULL-STACK.git"
 APP_DIR="/opt/form-weaver"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOCAL_REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+SSH_READY_RETRIES=6
+SSH_READY_DELAY=5
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -121,11 +123,29 @@ SSH_OPTS=(
   -i "$KEY_PATH"
   -o StrictHostKeyChecking=accept-new
   -o BatchMode=yes
-  -o ConnectTimeout=20
+  -o ConnectTimeout=45
+  -o ConnectionAttempts=3
   -o ServerAliveInterval=30
   -o ServerAliveCountMax=120
 )
-RSYNC_RSH="ssh -i \"$KEY_PATH\" -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=120"
+RSYNC_RSH="ssh -i \"$KEY_PATH\" -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=45 -o ConnectionAttempts=3 -o ServerAliveInterval=30 -o ServerAliveCountMax=120"
+
+wait_for_ssh() {
+  local attempt=1
+  while [ "$attempt" -le "$SSH_READY_RETRIES" ]; do
+    if ssh "${SSH_OPTS[@]}" "$SSH_USER@$HOST" "echo ready" >/dev/null 2>&1; then
+      return 0
+    fi
+    echo "SSH not ready yet (attempt $attempt/$SSH_READY_RETRIES). Retrying in ${SSH_READY_DELAY}s..."
+    sleep "$SSH_READY_DELAY"
+    attempt=$((attempt + 1))
+  done
+  echo "Unable to establish SSH to $SSH_USER@$HOST after $SSH_READY_RETRIES attempts."
+  echo "Check instance state, public IP, and security group port 22."
+  exit 1
+}
+
+wait_for_ssh
 
 echo "1/6 Preparing EC2 host..."
 ssh "${SSH_OPTS[@]}" "$SSH_USER@$HOST" "REPO_URL='$REPO_URL' APP_DIR='$APP_DIR' SSH_USER='$SSH_USER' SKIP_SETUP='$SKIP_SETUP' bash -s" <<'REMOTE'
