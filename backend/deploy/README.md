@@ -94,3 +94,19 @@ Nginx config is generated at:
 sudo dnf install -y certbot python3-certbot-nginx || sudo apt install -y certbot python3-certbot-nginx
 sudo certbot --nginx -d your-domain.com
 ```
+
+## 10. One-command automatic deploy (from your laptop)
+
+You can deploy everything automatically (setup + env upload + build + run) with:
+
+```bash
+chmod +x backend/deploy/auto-ec2-deploy.sh
+./backend/deploy/auto-ec2-deploy.sh \
+  --host 13.201.96.51 \
+  --key ~/Downloads/formweaver-key.pem \
+  --env ~/Downloads/formweaver-backend.env \
+  --user ec2-user \
+  --domain _
+```
+
+This command runs from your local machine and completes the full EC2 deployment.
