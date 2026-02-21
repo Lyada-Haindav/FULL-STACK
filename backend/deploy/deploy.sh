@@ -17,6 +17,7 @@ DOMAIN="${APP_DOMAIN:-_}"
 APP_RUN_USER="${APP_RUN_USER:-${SUDO_USER:-$USER}}"
 APP_RUN_GROUP="${APP_RUN_GROUP:-$(id -gn "$APP_RUN_USER")}"
 JAVA_BIN="$(command -v java)"
+SKIP_FRONTEND_BUILD="${SKIP_FRONTEND_BUILD:-0}"
 
 if [ -z "$JAVA_BIN" ]; then
   echo "Java binary not found in PATH."
@@ -36,10 +37,14 @@ if [ ! -f "$APP_DIR/package.json" ]; then
   exit 1
 fi
 
-echo "Building frontend..."
-cd "$APP_DIR"
-npm ci
-npm run build
+if [ "$SKIP_FRONTEND_BUILD" = "1" ]; then
+  echo "Skipping frontend build (using existing dist/public)."
+else
+  echo "Building frontend..."
+  cd "$APP_DIR"
+  npm ci --no-audit --no-fund
+  npm run build
+fi
 
 if [ ! -d "$APP_DIR/dist/public" ]; then
   echo "Frontend build output not found at $APP_DIR/dist/public"

@@ -22,9 +22,37 @@ install_node_20_rpm() {
   fi
 }
 
+ensure_swap_if_low_memory() {
+  local total_mem_mb
+  total_mem_mb="$(free -m | awk '/^Mem:/ {print $2}')"
+  if [ -z "${total_mem_mb:-}" ]; then
+    return
+  fi
+
+  if swapon --show | grep -q .; then
+    return
+  fi
+
+  if [ "$total_mem_mb" -ge 1800 ]; then
+    return
+  fi
+
+  echo "Low memory detected (${total_mem_mb}MB). Creating 2GB swap file..."
+  if [ ! -f /swapfile ]; then
+    sudo fallocate -l 2G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+  fi
+  sudo swapon /swapfile || true
+  if ! grep -q '^/swapfile ' /etc/fstab; then
+    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab >/dev/null
+  fi
+}
+
 echo "Creating application directory..."
 sudo mkdir -p /opt/form-weaver
 sudo chown "$USER:$USER" /opt/form-weaver
+ensure_swap_if_low_memory
 
 if command -v apt >/dev/null 2>&1; then
   echo "Detected Debian/Ubuntu."

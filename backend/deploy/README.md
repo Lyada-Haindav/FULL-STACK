@@ -110,3 +110,14 @@ chmod +x backend/deploy/auto-ec2-deploy.sh
 ```
 
 This command runs from your local machine and completes the full EC2 deployment.
+By default, it builds frontend locally (faster and more stable on t3.micro) and only builds backend on EC2.
+
+If you want frontend build on EC2 instead:
+
+```bash
+./backend/deploy/auto-ec2-deploy.sh \
+  --host 13.201.96.51 \
+  --key ~/Downloads/formweaver-key.pem \
+  --env ~/Downloads/formweaver-backend.env \
+  --frontend-build remote
+```
