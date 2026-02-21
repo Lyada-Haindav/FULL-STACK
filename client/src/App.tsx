@@ -12,6 +12,7 @@ const Dashboard = lazy(() => import("@/pages/dashboard"));
 const FormBuilder = lazy(() => import("@/pages/form-builder"));
 const PublicForm = lazy(() => import("@/pages/public-form"));
 const TemplatesPage = lazy(() => import("@/pages/templates"));
+const VerifyEmailPage = lazy(() => import("@/pages/verify-email"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
 function Router() {
@@ -34,6 +35,7 @@ function Router() {
           <Route path="/templates" component={TemplatesPage} />
           <Route path="/builder/:id" component={FormBuilder} />
           <Route path="/forms/:id" component={PublicForm} />
+          <Route path="/verify-email" component={VerifyEmailPage} />
           <Route component={NotFound} />
         </Switch>
       </Suspense>
@@ -47,6 +49,7 @@ function Router() {
         <Route path="/" component={LandingPage} />
         <Route path="/login" component={LoginPage} />
         <Route path="/forms/:id" component={PublicForm} />
+        <Route path="/verify-email" component={VerifyEmailPage} />
         <Route component={LandingPage} />
       </Switch>
       {isLoading && !isPublicForm ? (

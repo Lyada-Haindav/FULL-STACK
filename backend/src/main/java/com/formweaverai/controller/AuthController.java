@@ -7,8 +7,11 @@ import com.formweaverai.dto.RegisterRequest;
 import com.formweaverai.dto.ResendVerificationRequest;
 import com.formweaverai.dto.ResetPasswordRequest;
 import com.formweaverai.dto.UserDto;
+import com.formweaverai.dto.VerifyEmailRequest;
 import com.formweaverai.service.AuthService;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -17,14 +20,17 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URI;
 
 @RestController
 @RequestMapping("/api")
 public class AuthController {
   private final AuthService authService;
+  private final String appFrontendUrl;
 
-  public AuthController(AuthService authService) {
+  public AuthController(AuthService authService, @Value("${app.frontend-url:}") String appFrontendUrl) {
     this.authService = authService;
+    this.appFrontendUrl = normalizeOptionalUrl(appFrontendUrl);
   }
 
   @PostMapping("/auth/register")
@@ -60,6 +66,12 @@ public class AuthController {
   public ResponseEntity<String> verifyEmail(@RequestParam("token") String token) {
     boolean verified = authService.verifyEmailToken(token);
 
+    if (!appFrontendUrl.isBlank()) {
+      HttpHeaders headers = new HttpHeaders();
+      headers.setLocation(URI.create(appFrontendUrl + "/verify-email?status=" + (verified ? "success" : "error")));
+      return new ResponseEntity<>(headers, HttpStatus.FOUND);
+    }
+
     if (!verified) {
       return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("""
         <html><body style=\"font-family:Arial,sans-serif;padding:24px;color:#111827;\">
@@ -75,6 +87,16 @@ public class AuthController {
       <p>Your account is now active. You can return to the app and sign in.</p>
       </body></html>
       """);
+  }
+
+  @PostMapping("/auth/verify-email")
+  public ResponseEntity<MessageResponse> verifyEmailApi(@Valid @RequestBody VerifyEmailRequest request) {
+    boolean verified = authService.verifyEmailToken(request.token());
+    if (!verified) {
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(new MessageResponse("Verification link is invalid or expired."));
+    }
+    return ResponseEntity.ok(new MessageResponse("Email verified successfully. You can sign in now."));
   }
 
   @PostMapping("/auth/resend-verification")
@@ -156,5 +178,12 @@ public class AuthController {
   @GetMapping("/logout")
   public void logoutRedirect(HttpServletResponse response) throws IOException {
     response.sendRedirect("/");
+  }
+
+  private String normalizeOptionalUrl(String value) {
+    if (value == null || value.isBlank()) {
+      return "";
+    }
+    return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
   }
 }

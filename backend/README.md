@@ -22,10 +22,12 @@ export SMTP_PASSWORD="your-brevo-api-key"
 export SMTP_FROM="no-reply@yourdomain.com"
 export BREVO_API_KEY="xkeysib-..."
 export APP_BASE_URL="http://localhost:8080"
+export APP_FRONTEND_URL="http://localhost:5173"
 ```
 
 Notes:
 - `APP_BASE_URL` must be the backend public URL so email verification links work.
+- `APP_FRONTEND_URL` is optional but recommended. If set, verification links open a frontend `/verify-email` page.
 - `BREVO_API_KEY` is recommended on Render. It sends mail via Brevo HTTPS API (port 443), which is more reliable than SMTP on restricted networks.
 - If `BREVO_API_KEY` is not set, SMTP is used. If SMTP password is copied as `api-key=...`, it is normalized automatically.
 

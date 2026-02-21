@@ -31,6 +31,7 @@ public class BrevoEmailService {
   private final String fromEmail;
   private final String smtpUsername;
   private final String appBaseUrl;
+  private final String appFrontendUrl;
   private final HttpClient httpClient;
   private final String brevoApiKey;
 
@@ -40,13 +41,15 @@ public class BrevoEmailService {
     @Value("${app.mail.from:no-reply@formweaver.local}") String fromEmail,
     @Value("${spring.mail.username:}") String smtpUsername,
     @Value("${BREVO_API_KEY:}") String brevoApiKey,
-    @Value("${app.base-url:http://localhost:8080}") String appBaseUrl
+    @Value("${app.base-url:http://localhost:8080}") String appBaseUrl,
+    @Value("${app.frontend-url:}") String appFrontendUrl
   ) {
     this.mailSender = mailSender;
     this.taskExecutor = taskExecutor;
     this.fromEmail = fromEmail;
     this.smtpUsername = smtpUsername == null ? "" : smtpUsername.trim();
     this.appBaseUrl = trimTrailingSlash(appBaseUrl);
+    this.appFrontendUrl = normalizeOptionalUrl(appFrontendUrl);
     String normalizedMailPassword = sanitizeBrevoPassword();
     this.brevoApiKey = resolveBrevoApiKey(brevoApiKey, normalizedMailPassword);
     this.httpClient = HttpClient.newBuilder()
@@ -55,7 +58,7 @@ public class BrevoEmailService {
   }
 
   public void sendVerificationEmail(String recipientEmail, String recipientName, String token) {
-    String verificationUrl = appBaseUrl + "/api/auth/verify-email?token=" + token;
+    String verificationUrl = buildVerificationUrl(token);
 
     String subject = "Confirm your FormFlow AI account";
     String htmlBody = """
@@ -134,6 +137,20 @@ public class BrevoEmailService {
       return "http://localhost:8080";
     }
     return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
+  }
+
+  private String normalizeOptionalUrl(String value) {
+    if (value == null || value.isBlank()) {
+      return "";
+    }
+    return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
+  }
+
+  private String buildVerificationUrl(String token) {
+    if (!appFrontendUrl.isBlank()) {
+      return appFrontendUrl + "/verify-email?token=" + token;
+    }
+    return appBaseUrl + "/api/auth/verify-email?token=" + token;
   }
 
   private String sanitizeBrevoPassword() {
