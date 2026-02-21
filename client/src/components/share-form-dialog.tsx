@@ -106,15 +106,15 @@ export function ShareFormDialog({ formId, formTitle, trigger }: ShareFormDialogP
           </div>
 
           <div className="flex flex-col items-center gap-4 p-6 bg-muted/20 rounded-xl border border-border/60">
-            <div className="bg-transparent p-3 rounded-lg border border-border/60">
+            <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
               <QRCodeSVG 
                 ref={qrRef}
                 value={shareUrl} 
                 size={160}
                 level="H"
-                includeMargin={false}
-                bgColor="transparent"
-                fgColor="#f5f5f5"
+                includeMargin={true}
+                bgColor="#ffffff"
+                fgColor="#0f172a"
               />
             </div>
             <div className="text-center">
