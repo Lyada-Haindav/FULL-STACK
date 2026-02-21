@@ -1,60 +1,89 @@
 #!/bin/bash
 
-# Spring Boot Application Deployment Script
-# Run this after ec2-setup.sh and copying your code
+# Deploy backend as a systemd service on EC2.
+# Expected repo layout on server:
+#   /opt/form-weaver/backend/pom.xml
 
-set -e
+set -euo pipefail
 
 APP_NAME="form-weaver-backend"
 APP_DIR="/opt/form-weaver"
+BACKEND_DIR="$APP_DIR/backend"
 JAR_FILE="$APP_DIR/$APP_NAME.jar"
+ENV_FILE="$APP_DIR/.env"
 SERVICE_FILE="/etc/systemd/system/$APP_NAME.service"
+NGINX_FILE="/etc/nginx/sites-available/$APP_NAME"
+DOMAIN="${APP_DOMAIN:-_}"
 
-echo "🚀 Deploying Spring Boot Application"
+echo "Deploying $APP_NAME ..."
 
-# Navigate to application directory
-cd $APP_DIR
+if [ ! -d "$BACKEND_DIR" ]; then
+  echo "Backend directory not found: $BACKEND_DIR"
+  echo "Clone repo into /opt/form-weaver first."
+  exit 1
+fi
 
-# Build the application
-echo "🔨 Building Spring Boot application..."
+cd "$BACKEND_DIR"
+
+echo "Building backend jar..."
 mvn clean package -DskipTests
 
-# Copy JAR file
-echo "📦 Copying JAR file..."
-cp target/*.jar $JAR_FILE
+if [ ! -f "$BACKEND_DIR/target/form-weaver-backend-0.0.1-SNAPSHOT.jar" ]; then
+  echo "Build output jar not found in target/"
+  exit 1
+fi
 
-# Create systemd service
-echo "⚙️ Creating systemd service..."
-sudo tee $SERVICE_FILE > /dev/null <<EOF
+echo "Copying jar to $JAR_FILE"
+cp "$BACKEND_DIR/target/form-weaver-backend-0.0.1-SNAPSHOT.jar" "$JAR_FILE"
+
+if [ ! -f "$ENV_FILE" ]; then
+  echo "Creating environment template at $ENV_FILE"
+  cat > "$ENV_FILE" <<'EOF'
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/?appName=Cluster0
+MONGODB_DATABASE=form_weaver
+GOOGLE_API_KEY=replace_me
+JWT_SECRET=replace_with_long_secret
+DEMO_USER_EMAIL=demo@formweaver.local
+DEMO_USER_PASSWORD=demo1234
+EOF
+  chmod 600 "$ENV_FILE"
+  echo "Update $ENV_FILE with real values and run deploy.sh again."
+  exit 1
+fi
+
+echo "Writing systemd service..."
+sudo tee "$SERVICE_FILE" > /dev/null <<EOF
 [Unit]
-Description=Form Weaver Backend
-After=network.target
+Description=Form Weaver Backend Service
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
 User=ubuntu
+Group=ubuntu
 WorkingDirectory=$APP_DIR
-ExecStart=/usr/bin/java -jar $JAR_FILE
-Restart=always
-RestartSec=10
+EnvironmentFile=-$ENV_FILE
 Environment=SPRING_PROFILES_ACTIVE=prod
-Environment=DATABASE_URL=jdbc:mysql://localhost:3306/form_weaver
-Environment=DATABASE_USERNAME=formweaver
-Environment=DATABASE_PASSWORD=secure_password_123
+ExecStart=/usr/bin/java -jar $JAR_FILE
+SuccessExitStatus=143
+Restart=always
+RestartSec=5
+LimitNOFILE=65535
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
-# Configure Nginx reverse proxy
-echo "🌐 Configuring Nginx reverse proxy..."
-sudo tee /etc/nginx/sites-available/$APP_NAME > /dev/null <<EOF
+echo "Writing Nginx reverse proxy config..."
+sudo tee "$NGINX_FILE" > /dev/null <<EOF
 server {
     listen 80;
-    server_name your-domain.com;  # Replace with your domain or EC2 IP
+    server_name $DOMAIN;
+    client_max_body_size 30m;
 
     location / {
-        proxy_pass http://localhost:8080;
+        proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -63,21 +92,18 @@ server {
 }
 EOF
 
-# Enable Nginx site
-sudo ln -sf /etc/nginx/sites-available/$APP_NAME /etc/nginx/sites-enabled/
+sudo ln -sf "$NGINX_FILE" "/etc/nginx/sites-enabled/$APP_NAME"
 sudo rm -f /etc/nginx/sites-enabled/default
-sudo nginx -t && sudo systemctl restart nginx
+sudo nginx -t
+sudo systemctl restart nginx
 
-# Reload systemd and start service
-echo "🔄 Starting application service..."
+echo "Starting service..."
 sudo systemctl daemon-reload
-sudo systemctl enable $APP_NAME
-sudo systemctl restart $APP_NAME
+sudo systemctl enable "$APP_NAME"
+sudo systemctl restart "$APP_NAME"
 
-# Check service status
-echo "📊 Checking service status..."
-sudo systemctl status $APP_NAME --no-pager
+echo "Service status:"
+sudo systemctl status "$APP_NAME" --no-pager || true
 
-echo "✅ Deployment completed!"
-echo "🌐 Your application should be available at: http://your-domain.com"
-echo "📋 Check logs with: sudo journalctl -u $APP_NAME -f"
+echo "Deployment finished."
+echo "Logs: sudo journalctl -u $APP_NAME -f"
