@@ -146,16 +146,54 @@ export function useGenerateFormAI() {
   
   return useMutation({
     mutationFn: async (payload: { prompt: string; model?: string; complexity?: "compact" | "balanced" | "detailed"; tone?: "professional" | "friendly" | "formal" }) => {
-      const res = await fetch(api.ai.generateForm.path, {
-        method: api.ai.generateForm.method,
-        headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error("AI Generation failed");
-      return api.ai.generateForm.responses[200].parse(await res.json());
+      const maxAttempts = 3;
+      const retryStatuses = new Set([429, 500, 502, 503, 504]);
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          const res = await fetch(api.ai.generateForm.path, {
+            method: api.ai.generateForm.method,
+            headers: { "Content-Type": "application/json", ...authHeaders() },
+            body: JSON.stringify(payload),
+          });
+
+          if (res.ok) {
+            return api.ai.generateForm.responses[200].parse(await res.json());
+          }
+
+          let message = "AI generation failed.";
+          try {
+            const payload = await res.json();
+            if (payload?.message && typeof payload.message === "string") {
+              message = payload.message;
+            }
+          } catch {
+            // keep default message
+          }
+
+          if (retryStatuses.has(res.status) && attempt < maxAttempts) {
+            await new Promise((resolve) => setTimeout(resolve, attempt * 1500));
+            continue;
+          }
+
+          throw new Error(message);
+        } catch (error) {
+          if (attempt < maxAttempts) {
+            await new Promise((resolve) => setTimeout(resolve, attempt * 1500));
+            continue;
+          }
+          throw error instanceof Error ? error : new Error("AI generation failed.");
+        }
+      }
+
+      throw new Error("AI generation failed.");
     },
     onError: (error) => {
-      toast({ title: "Generation Failed", description: error.message, variant: "destructive" });
+      toast({
+        title: "Generation Failed",
+        description: `${error.message} If backend is waking up, retry in 15-30 seconds.`,
+        variant: "destructive",
+      });
     }
   });
 }

@@ -62,8 +62,19 @@ public class GeminiService {
       .build();
 
     Client client = Client.builder().apiKey(apiKey).build();
-    GenerateContentResponse response = client.models.generateContent(model, finalPrompt, config);
-    String text = response.text();
+    GenerateContentResponse response;
+    try {
+      response = client.models.generateContent(model, finalPrompt, config);
+    } catch (Exception e) {
+      return fallbackAdvanced(prompt, complexity, tone);
+    }
+
+    String text;
+    try {
+      text = response.text();
+    } catch (Exception e) {
+      return fallbackAdvanced(prompt, complexity, tone);
+    }
 
     if (text == null || text.isBlank()) {
       return fallbackAdvanced(prompt, complexity, tone);
