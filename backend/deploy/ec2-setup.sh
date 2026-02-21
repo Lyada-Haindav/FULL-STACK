@@ -57,8 +57,12 @@ elif command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then
   sudo "$PM" update -y
 
   echo "Installing runtime dependencies..."
-  sudo "$PM" install -y java-17-amazon-corretto-devel maven nginx git curl rsync || \
-    sudo "$PM" install -y java-17-openjdk-devel maven nginx git curl rsync
+  sudo "$PM" install -y java-17-amazon-corretto-devel maven nginx git rsync || \
+    sudo "$PM" install -y java-21-amazon-corretto-devel maven nginx git rsync
+  # Amazon Linux ships curl-minimal by default; installing curl can conflict.
+  if ! command -v curl >/dev/null 2>&1; then
+    sudo "$PM" install -y curl-minimal || true
+  fi
   install_node_20_rpm
 
   echo "Enabling Nginx..."
