@@ -33,8 +33,8 @@ public class AuthController {
       .map(user -> ResponseEntity.status(HttpStatus.CREATED).body(
         new MessageResponse("Registration successful. Please check your email for verification.")
       ))
-      .orElseGet(() -> ResponseEntity.status(HttpStatus.CONFLICT).body(
-        new MessageResponse("Email already registered.")
+      .orElseGet(() -> ResponseEntity.ok().body(
+        new MessageResponse("Account already exists. Please sign in.")
       ));
   }
 
