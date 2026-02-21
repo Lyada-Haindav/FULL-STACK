@@ -1,20 +1,22 @@
 package com.formweaverai.model;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.Field;
 
 @Document(collection = "templates")
 public class Template {
   @Id
   private String id;
 
+  @Indexed(name = "templates_name_idx")
   private String name;
 
   private String description;
 
   private String icon;
 
+  @Indexed(name = "templates_category_idx")
   private String category;
 
   private Object config;

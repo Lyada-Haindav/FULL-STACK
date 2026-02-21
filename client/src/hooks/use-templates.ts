@@ -6,8 +6,7 @@ export function useTemplates() {
   return useQuery({
     queryKey: ["/api/templates"],
     queryFn: async (): Promise<Template[]> => {
-      // Temporarily remove auth headers for debugging
-      const res = await fetch("/api/templates");
+      const res = await fetch("/api/templates", { headers: { ...authHeaders() } });
       if (!res.ok) throw new Error("Failed to fetch templates");
       return res.json();
     },

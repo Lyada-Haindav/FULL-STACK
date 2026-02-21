@@ -404,12 +404,8 @@ public class FormService {
   }
 
   public void seedTemplatesIfEmpty() {
-    List<Template> existing = templateRepository.findAll();
-    if (!existing.isEmpty()) {
-      boolean needsReset = existing.stream().anyMatch(template -> isLegacyConfig(template.getConfig()));
-      if (needsReset) {
-        templateRepository.deleteAll();
-      }
+    if (templateRepository.count() > 0) {
+      return;
     }
 
     List<Template> templates = new ArrayList<>();
@@ -623,12 +619,7 @@ public class FormService {
       "IT",
       "{\"title\":\"IT Access Request\",\"description\":\"Request access to systems and tools.\",\"steps\":[{\"title\":\"Requester\",\"description\":\"Who needs access?\",\"fields\":[{\"type\":\"text\",\"label\":\"Full Name\",\"required\":true,\"orderIndex\":0},{\"type\":\"email\",\"label\":\"Work Email\",\"required\":true,\"orderIndex\":1},{\"type\":\"text\",\"label\":\"Department\",\"required\":false,\"orderIndex\":2}]},{\"title\":\"Access\",\"description\":\"Select what you need.\",\"fields\":[{\"type\":\"select\",\"label\":\"Tool\",\"required\":true,\"orderIndex\":0,\"options\":[{\"label\":\"GitHub\",\"value\":\"github\"},{\"label\":\"Jira\",\"value\":\"jira\"},{\"label\":\"Slack\",\"value\":\"slack\"},{\"label\":\"Google Workspace\",\"value\":\"google\"}]},{\"type\":\"textarea\",\"label\":\"Justification\",\"required\":true,\"orderIndex\":1}]}]}"
     ));
-    List<Template> toInsert = templates.stream()
-      .filter(template -> !templateRepository.existsByName(template.getName()))
-      .toList();
-    if (!toInsert.isEmpty()) {
-      templateRepository.saveAll(toInsert);
-    }
+    templateRepository.saveAll(templates);
   }
 
   private Template buildTemplate(String name, String description, String icon, String category, String configJson) {
@@ -714,13 +705,6 @@ public class FormService {
     rules.put("maxFiles", 3);
     rules.put("maxSizeMb", 10);
     return rules;
-  }
-
-  private boolean isLegacyConfig(Object config) {
-    if (config instanceof Map<?, ?> map) {
-      return map.containsKey("_children") || map.containsKey("_class");
-    }
-    return false;
   }
 
   private FormDto toFormDto(Form form) {

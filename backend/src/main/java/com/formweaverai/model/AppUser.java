@@ -1,6 +1,7 @@
 package com.formweaverai.model;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 import java.time.Instant;
@@ -11,6 +12,7 @@ public class AppUser {
   private String id;
 
   @Field("email")
+  @Indexed(name = "users_email_idx", unique = true)
   private String email;
 
   @Field("password_hash")
@@ -24,6 +26,23 @@ public class AppUser {
 
   @Field("profile_image_url")
   private String profileImageUrl;
+
+  @Field("email_verified")
+  private boolean emailVerified;
+
+  @Field("email_verification_token")
+  @Indexed(name = "users_email_verification_token_idx")
+  private String emailVerificationToken;
+
+  @Field("email_verification_expires_at")
+  private Instant emailVerificationExpiresAt;
+
+  @Field("password_reset_token")
+  @Indexed(name = "users_password_reset_token_idx")
+  private String passwordResetToken;
+
+  @Field("password_reset_expires_at")
+  private Instant passwordResetExpiresAt;
 
   @Field("created_at")
   private Instant createdAt;
@@ -49,6 +68,22 @@ public class AppUser {
   public void setLastName(String lastName) { this.lastName = lastName; }
   public String getProfileImageUrl() { return profileImageUrl; }
   public void setProfileImageUrl(String profileImageUrl) { this.profileImageUrl = profileImageUrl; }
+  public boolean isEmailVerified() { return emailVerified; }
+  public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
+  public String getEmailVerificationToken() { return emailVerificationToken; }
+  public void setEmailVerificationToken(String emailVerificationToken) { this.emailVerificationToken = emailVerificationToken; }
+  public Instant getEmailVerificationExpiresAt() { return emailVerificationExpiresAt; }
+  public void setEmailVerificationExpiresAt(Instant emailVerificationExpiresAt) { this.emailVerificationExpiresAt = emailVerificationExpiresAt; }
+  public String getPasswordResetToken() { return passwordResetToken; }
+  public void setPasswordResetToken(String passwordResetToken) { this.passwordResetToken = passwordResetToken; }
+  public Instant getPasswordResetExpiresAt() { return passwordResetExpiresAt; }
+  public void setPasswordResetExpiresAt(Instant passwordResetExpiresAt) { this.passwordResetExpiresAt = passwordResetExpiresAt; }
   public Instant getCreatedAt() { return createdAt; }
+  public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
   public Instant getUpdatedAt() { return updatedAt; }
+  public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+
+  public void touch() {
+    this.updatedAt = Instant.now();
+  }
 }

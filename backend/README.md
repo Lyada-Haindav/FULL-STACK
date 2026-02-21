@@ -3,18 +3,32 @@
 ## Requirements
 - Java 17+
 - Maven 3.9+
-- MySQL 8+
+- MongoDB Atlas (or local MongoDB)
 
-## Setup
-1. Create a database named `form_weaver`.
-2. Update credentials in `backend/src/main/resources/application.yml` if needed.
-3. Set your Gemini API key:
+## Required environment variables
 ```bash
+export MONGODB_URI="mongodb+srv://..."
+export MONGODB_DATABASE="form_weaver"
 export GOOGLE_API_KEY="your_key_here"
-```
-4. (Optional) Set JWT secret and demo user credentials:
-```bash
 export JWT_SECRET="replace-with-a-long-secret"
+```
+
+## Auth email (Brevo SMTP)
+```bash
+export SMTP_HOST="smtp-relay.brevo.com"
+export SMTP_PORT="587"
+export SMTP_USERNAME="your-brevo-login"
+export SMTP_PASSWORD="your-brevo-api-key"
+export SMTP_FROM="no-reply@yourdomain.com"
+export APP_BASE_URL="http://localhost:8080"
+```
+
+Notes:
+- `APP_BASE_URL` must be the backend public URL so email verification links work.
+- If your SMTP password is copied as `api-key=...`, it is accepted.
+
+## Optional demo user
+```bash
 export DEMO_USER_EMAIL="demo@formweaver.local"
 export DEMO_USER_PASSWORD="demo1234"
 ```
@@ -26,10 +40,9 @@ mvn spring-boot:run
 
 The API will be available at `http://localhost:8080`.
 
-## Frontend Dev Proxy
-Vite is configured to proxy `/api` to `http://localhost:8080`.
-
-## Auth
+## Auth endpoints
 - Register: `POST /api/auth/register`
 - Login: `POST /api/auth/login`
-- Current user: `GET /api/auth/user` (Authorization: Bearer <token>)
+- Verify email (from inbox link): `GET /api/auth/verify-email?token=...`
+- Resend verification: `POST /api/auth/resend-verification`
+- Current user: `GET /api/auth/user` (Authorization: Bearer `<token>`)

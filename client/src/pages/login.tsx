@@ -7,7 +7,17 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
-  const { login, register, isLoggingIn, isRegistering, user } = useAuth();
+  const {
+    login,
+    register,
+    resendVerification,
+    forgotPassword,
+    isLoggingIn,
+    isRegistering,
+    isResendingVerification,
+    isSendingForgotPassword,
+    user,
+  } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [email, setEmail] = useState("");
@@ -15,6 +25,7 @@ export default function LoginPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [mode, setMode] = useState<"login" | "register">("login");
+  const [showResendVerification, setShowResendVerification] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -29,6 +40,7 @@ export default function LoginPage() {
       window.location.href = "/";
     } catch (error) {
       const message = error instanceof Error ? error.message : "Check your credentials and try again.";
+      setShowResendVerification(message.toLowerCase().includes("not verified"));
       toast({ title: "Login failed", description: message, variant: "destructive" });
     }
   };
@@ -38,7 +50,7 @@ export default function LoginPage() {
       await register({ email, password, firstName, lastName });
       toast({
         title: "Registration successful!",
-        description: "Please check your email to confirm your account, then login.",
+        description: "Please check your email and confirm your account, then sign in.",
         variant: "default",
       });
       setMode("login");
@@ -50,6 +62,7 @@ export default function LoginPage() {
 
   const handleModeSwitch = (newMode: "login" | "register") => {
     setMode(newMode);
+    setShowResendVerification(false);
     if (newMode === "register") {
       setFirstName("");
       setLastName("");
@@ -144,9 +157,55 @@ export default function LoginPage() {
             </div>
 
             {mode === "login" ? (
-              <Button onClick={handleLogin} disabled={isLoggingIn} className="w-full rounded-xl">
-                Continue <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+              <>
+                <Button onClick={handleLogin} disabled={isLoggingIn} className="w-full rounded-xl">
+                  Continue <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={async () => {
+                    if (!email) {
+                      toast({ title: "Email required", description: "Enter your email first.", variant: "destructive" });
+                      return;
+                    }
+                    try {
+                      await forgotPassword({ email });
+                      toast({ title: "Reset link sent", description: "Check your email for password reset instructions." });
+                    } catch (error) {
+                      toast({
+                        title: "Request failed",
+                        description: error instanceof Error ? error.message : "Failed to request password reset.",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  disabled={isSendingForgotPassword}
+                  className="w-full rounded-xl"
+                >
+                  {isSendingForgotPassword ? "Sending..." : "Forgot password?"}
+                </Button>
+                {showResendVerification ? (
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      try {
+                        await resendVerification({ email });
+                        toast({ title: "Verification sent", description: "Check your inbox for the new verification email." });
+                      } catch (error) {
+                        toast({
+                          title: "Resend failed",
+                          description: error instanceof Error ? error.message : "Could not resend verification email.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    disabled={isResendingVerification || !email}
+                    className="w-full rounded-xl"
+                  >
+                    {isResendingVerification ? "Sending..." : "Resend Verification Email"}
+                  </Button>
+                ) : null}
+              </>
             ) : (
               <Button onClick={handleRegister} disabled={isRegistering} className="w-full rounded-xl">
                 Create account <ArrowRight className="ml-2 h-4 w-4" />
