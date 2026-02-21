@@ -13,21 +13,33 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+
 @Service
 public class BrevoEmailService {
   private static final Logger logger = LoggerFactory.getLogger(BrevoEmailService.class);
+  private static final String BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
   private final JavaMailSender mailSender;
   private final TaskExecutor taskExecutor;
   private final String fromEmail;
   private final String smtpUsername;
   private final String appBaseUrl;
+  private final HttpClient httpClient;
+  private final String brevoApiKey;
 
   public BrevoEmailService(
     JavaMailSender mailSender,
     @Qualifier("appTaskExecutor") TaskExecutor taskExecutor,
     @Value("${app.mail.from:no-reply@formweaver.local}") String fromEmail,
     @Value("${spring.mail.username:}") String smtpUsername,
+    @Value("${BREVO_API_KEY:}") String brevoApiKey,
     @Value("${app.base-url:http://localhost:8080}") String appBaseUrl
   ) {
     this.mailSender = mailSender;
@@ -35,7 +47,11 @@ public class BrevoEmailService {
     this.fromEmail = fromEmail;
     this.smtpUsername = smtpUsername == null ? "" : smtpUsername.trim();
     this.appBaseUrl = trimTrailingSlash(appBaseUrl);
-    sanitizeBrevoPassword();
+    String normalizedMailPassword = sanitizeBrevoPassword();
+    this.brevoApiKey = resolveBrevoApiKey(brevoApiKey, normalizedMailPassword);
+    this.httpClient = HttpClient.newBuilder()
+      .connectTimeout(Duration.ofSeconds(5))
+      .build();
   }
 
   public void sendVerificationEmail(String recipientEmail, String recipientName, String token) {
@@ -79,6 +95,20 @@ public class BrevoEmailService {
   }
 
   private void sendHtmlEmail(String recipientEmail, String subject, String htmlBody, String kind) {
+    if (!brevoApiKey.isBlank()) {
+      try {
+        sendWithBrevoApi(recipientEmail, subject, htmlBody);
+        return;
+      } catch (IOException | InterruptedException ex) {
+        if (ex instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
+        logger.warn("Brevo API send failed for {} email to {}, falling back to SMTP", kind, recipientEmail, ex);
+      } catch (RuntimeException ex) {
+        logger.warn("Brevo API rejected {} email to {}, falling back to SMTP", kind, recipientEmail, ex);
+      }
+    }
+
     String primaryFrom = resolveFromEmail();
     try {
       sendHtmlEmailWithFrom(primaryFrom, recipientEmail, subject, htmlBody);
@@ -106,15 +136,21 @@ public class BrevoEmailService {
     return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
   }
 
-  private void sanitizeBrevoPassword() {
+  private String sanitizeBrevoPassword() {
     if (!(mailSender instanceof JavaMailSenderImpl sender)) {
-      return;
+      return "";
     }
 
     String password = sender.getPassword();
-    if (password != null && password.startsWith("api-key=")) {
-      sender.setPassword(password.substring("api-key=".length()));
+    if (password == null) {
+      return "";
     }
+    String trimmed = password.trim();
+    if (trimmed.startsWith("api-key=")) {
+      trimmed = trimmed.substring("api-key=".length());
+      sender.setPassword(trimmed);
+    }
+    return trimmed;
   }
 
   private String escape(String value) {
@@ -130,7 +166,7 @@ public class BrevoEmailService {
   }
 
   private String resolveFromEmail() {
-    String configured = fromEmail == null ? "" : fromEmail.trim();
+    String configured = normalizeEmailLike(fromEmail);
     if (!configured.isBlank() && !configured.endsWith("@formweaver.local")) {
       return configured;
     }
@@ -138,6 +174,120 @@ public class BrevoEmailService {
       return smtpUsername;
     }
     return "no-reply@formweaver.local";
+  }
+
+  private String normalizeEmailLike(String value) {
+    if (value == null) {
+      return "";
+    }
+    String trimmed = value.trim();
+    if (trimmed.isBlank()) {
+      return "";
+    }
+    if (trimmed.contains("<") && trimmed.contains(">")) {
+      int start = trimmed.indexOf('<');
+      int end = trimmed.lastIndexOf('>');
+      if (start >= 0 && end > start) {
+        trimmed = trimmed.substring(start + 1, end).trim();
+      }
+    }
+    return trimmed.contains("@") ? trimmed : "";
+  }
+
+  private String resolveBrevoApiKey(String configuredApiKey, String smtpPassword) {
+    String fromEnv = configuredApiKey == null ? "" : configuredApiKey.trim();
+    if (fromEnv.startsWith("api-key=")) {
+      fromEnv = fromEnv.substring("api-key=".length()).trim();
+    }
+    if (!fromEnv.isBlank()) {
+      return fromEnv;
+    }
+
+    String fromSmtpPassword = smtpPassword == null ? "" : smtpPassword.trim();
+    if (fromSmtpPassword.startsWith("xkeysib-")) {
+      return fromSmtpPassword;
+    }
+    return "";
+  }
+
+  private void sendWithBrevoApi(String recipientEmail, String subject, String htmlBody)
+    throws IOException, InterruptedException {
+    String from = resolveFromEmail();
+    String senderName = "FormFlow AI";
+    String recipient = recipientEmail == null ? "" : recipientEmail.trim();
+    String payload = """
+      {
+        "sender": {"name":"%s","email":"%s"},
+        "to":[{"email":"%s"}],
+        "subject":"%s",
+        "htmlContent":"%s"
+      }
+      """.formatted(
+      escapeJson(senderName),
+      escapeJson(from),
+      escapeJson(recipient),
+      escapeJson(subject),
+      escapeJson(htmlBody)
+    );
+
+    HttpRequest request = HttpRequest.newBuilder()
+      .uri(URI.create(BREVO_API_URL))
+      .timeout(Duration.ofSeconds(10))
+      .header("accept", "application/json")
+      .header("content-type", "application/json")
+      .header("api-key", brevoApiKey)
+      .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
+      .build();
+
+    HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+    int status = response.statusCode();
+    if (status < 200 || status >= 300) {
+      String body = response.body() == null ? "" : response.body().trim();
+      if (body.length() > 800) {
+        body = body.substring(0, 800);
+      }
+      throw new IllegalStateException("Brevo API returned status " + status + " body: " + body);
+    }
+  }
+
+  private String escapeJson(String value) {
+    if (value == null) {
+      return "";
+    }
+    StringBuilder sb = new StringBuilder(value.length() + 16);
+    for (int i = 0; i < value.length(); i++) {
+      char c = value.charAt(i);
+      switch (c) {
+        case '"':
+          sb.append("\\\"");
+          break;
+        case '\\':
+          sb.append("\\\\");
+          break;
+        case '\b':
+          sb.append("\\b");
+          break;
+        case '\f':
+          sb.append("\\f");
+          break;
+        case '\n':
+          sb.append("\\n");
+          break;
+        case '\r':
+          sb.append("\\r");
+          break;
+        case '\t':
+          sb.append("\\t");
+          break;
+        default:
+          if (c < 0x20) {
+            sb.append(String.format("\\u%04x", (int) c));
+          } else {
+            sb.append(c);
+          }
+      }
+    }
+    return sb.toString();
   }
 
   private void sendHtmlEmailWithFrom(String from, String recipientEmail, String subject, String htmlBody)
