@@ -1,10 +1,13 @@
-# EC2 Backend Service Deployment (Systemd)
+# EC2 Full-Stack Deployment (Systemd + Nginx)
 
-This guide deploys the backend as a Linux service (`systemd`) similar to a hackathon-style service deployment.
+This deploys frontend + backend on one EC2 instance:
+- Backend runs as a `systemd` service.
+- Nginx serves frontend static files.
+- Nginx proxies `/api/*` to backend on `127.0.0.1:8080`.
 
 ## 1. Launch EC2
 
-Use Ubuntu 22.04 and allow inbound ports `22`, `80`, `443`, `8080`.
+Use Ubuntu 22.04 and allow inbound ports `22`, `80`, `443`.
 
 ## 2. SSH
 
@@ -32,7 +35,7 @@ git clone https://github.com/Lyada-Haindav/FULL-STACK.git .
 
 ```bash
 chmod +x backend/deploy/deploy.sh
-APP_DOMAIN=your-api-domain.com ./backend/deploy/deploy.sh
+APP_DOMAIN=your-domain.com ./backend/deploy/deploy.sh
 ```
 
 If `/opt/form-weaver/.env` does not exist, the script creates a template and exits once.
@@ -49,6 +52,14 @@ GOOGLE_API_KEY=your_google_key
 JWT_SECRET=replace_with_long_secret
 DEMO_USER_EMAIL=demo@formweaver.local
 DEMO_USER_PASSWORD=demo1234
+SMTP_HOST=smtp-relay.brevo.com
+SMTP_PORT=587
+SMTP_USERNAME=your_brevo_smtp_username
+SMTP_PASSWORD=your_brevo_smtp_password
+SMTP_FROM=your_verified_sender_email
+BREVO_API_KEY=your_brevo_api_key
+APP_BASE_URL=https://your-domain.com
+APP_FRONTEND_URL=https://your-domain.com
 ```
 
 ## 7. Operate service
@@ -65,11 +76,12 @@ Nginx config is generated at:
 
 `/etc/nginx/sites-available/form-weaver-backend`
 
-It proxies to `127.0.0.1:8080`.
+- `/api/*` -> backend `127.0.0.1:8080`
+- `/` -> frontend static files at `/var/www/form-weaver`
 
 ## 9. SSL (optional)
 
 ```bash
 sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d your-api-domain.com
+sudo certbot --nginx -d your-domain.com
 ```
