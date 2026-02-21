@@ -21,6 +21,19 @@ interface MessageResponse {
   message: string;
 }
 
+const REQUEST_TIMEOUT_MS = 12000;
+
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
 export function useAuth() {
   const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
@@ -36,9 +49,9 @@ export function useAuth() {
       }
 
       try {
-        const res = await fetch("/api/auth/user", {
+        const res = await fetchWithTimeout("/api/auth/user", {
           headers: { ...authHeaders() },
-        });
+        }, 8000);
 
         if (!res.ok) {
           clearAuthToken();
@@ -70,7 +83,7 @@ export function useAuth() {
 
   const loginMutation = useMutation({
     mutationFn: async ({ email, password }: { email: string; password: string }) => {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetchWithTimeout("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -98,7 +111,7 @@ export function useAuth() {
       firstName?: string;
       lastName?: string;
     }) => {
-      const res = await fetch("/api/auth/register", {
+      const res = await fetchWithTimeout("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, firstName, lastName }),
@@ -116,7 +129,7 @@ export function useAuth() {
 
   const resendVerificationMutation = useMutation({
     mutationFn: async ({ email }: { email: string }) => {
-      const res = await fetch("/api/auth/resend-verification", {
+      const res = await fetchWithTimeout("/api/auth/resend-verification", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -134,7 +147,7 @@ export function useAuth() {
 
   const forgotPasswordMutation = useMutation({
     mutationFn: async ({ email }: { email: string }) => {
-      const res = await fetch("/api/auth/forgot-password", {
+      const res = await fetchWithTimeout("/api/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),

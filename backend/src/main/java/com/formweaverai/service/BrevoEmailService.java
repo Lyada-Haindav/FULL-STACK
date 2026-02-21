@@ -5,6 +5,8 @@ import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
@@ -16,15 +18,18 @@ public class BrevoEmailService {
   private static final Logger logger = LoggerFactory.getLogger(BrevoEmailService.class);
 
   private final JavaMailSender mailSender;
+  private final TaskExecutor taskExecutor;
   private final String fromEmail;
   private final String appBaseUrl;
 
   public BrevoEmailService(
     JavaMailSender mailSender,
+    @Qualifier("appTaskExecutor") TaskExecutor taskExecutor,
     @Value("${app.mail.from:no-reply@formweaver.local}") String fromEmail,
     @Value("${app.base-url:http://localhost:8080}") String appBaseUrl
   ) {
     this.mailSender = mailSender;
+    this.taskExecutor = taskExecutor;
     this.fromEmail = fromEmail;
     this.appBaseUrl = trimTrailingSlash(appBaseUrl);
     sanitizeBrevoPassword();
@@ -47,18 +52,7 @@ public class BrevoEmailService {
       </div>
       """.formatted(escape(recipientName), verificationUrl, verificationUrl, verificationUrl);
 
-    try {
-      MimeMessage message = mailSender.createMimeMessage();
-      MimeMessageHelper helper = new MimeMessageHelper(message, "UTF-8");
-      helper.setTo(recipientEmail);
-      helper.setFrom(fromEmail);
-      helper.setSubject(subject);
-      helper.setText(htmlBody, true);
-      mailSender.send(message);
-    } catch (MailException | MessagingException ex) {
-      logger.error("Failed to send verification email to {}", recipientEmail, ex);
-      throw new IllegalStateException("Failed to send verification email");
-    }
+    taskExecutor.execute(() -> sendHtmlEmail(recipientEmail, subject, htmlBody, "verification"));
   }
 
   public void sendPasswordResetEmail(String recipientEmail, String recipientName, String token) {
@@ -78,6 +72,10 @@ public class BrevoEmailService {
       </div>
       """.formatted(escape(recipientName), resetUrl, resetUrl, resetUrl);
 
+    taskExecutor.execute(() -> sendHtmlEmail(recipientEmail, subject, htmlBody, "password-reset"));
+  }
+
+  private void sendHtmlEmail(String recipientEmail, String subject, String htmlBody, String kind) {
     try {
       MimeMessage message = mailSender.createMimeMessage();
       MimeMessageHelper helper = new MimeMessageHelper(message, "UTF-8");
@@ -87,8 +85,7 @@ public class BrevoEmailService {
       helper.setText(htmlBody, true);
       mailSender.send(message);
     } catch (MailException | MessagingException ex) {
-      logger.error("Failed to send password reset email to {}", recipientEmail, ex);
-      throw new IllegalStateException("Failed to send password reset email");
+      logger.error("Failed to send {} email to {}", kind, recipientEmail, ex);
     }
   }
 
