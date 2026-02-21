@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForms, useForm, useCreateForm, useGenerateFormAI, useCreateCompleteForm, useDeleteForm, usePublishForm, useCloneForm } from "@/hooks/use-forms";
 import { useSubmissions } from "@/hooks/use-submissions";
 import { useTotalSubmissions, useFormSubmissionsCount } from "@/hooks/use-analytics";
@@ -9,11 +9,9 @@ import {
   FileText, 
   BarChart2, 
   Calendar, 
-  LayoutTemplate,
   Sparkles, 
   Loader2,
   Trash2,
-  Share2,
   ArrowLeft,
   Download
 } from "lucide-react";
@@ -39,9 +37,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { format } from "date-fns";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
-import { normalizeTemplateConfig } from "@/lib/legacy-config";
 import {
   Table,
   TableBody,
@@ -54,7 +51,6 @@ import {
 export default function Dashboard() {
   const { data: forms, isLoading } = useForms();
   const { data: totalSubmissions } = useTotalSubmissions();
-  const createCompleteMutation = useCreateCompleteForm();
   const deleteFormMutation = useDeleteForm();
   const publishMutation = usePublishForm();
   const cloneFormMutation = useCloneForm();
@@ -109,27 +105,6 @@ export default function Dashboard() {
   const activeForms = forms?.filter(f => f.isPublished).length || 0;
   const totalForms = forms?.length || 0;
 
-  const handleUseTemplate = async (template: any) => {
-    const config = normalizeTemplateConfig(template.config) as any;
-    const steps = Array.isArray(config?.steps) ? config.steps.map((step: any) => ({
-      title: step.title || "Untitled Step",
-      description: step.description || "",
-      fields: Array.isArray(step.fields) ? step.fields.map((field: any) => ({
-        type: field.type || "text",
-        label: field.label || "Field",
-        placeholder: field.placeholder || "",
-        required: !!field.required,
-        options: Array.isArray(field.options) ? field.options : [],
-      })) : [],
-    })) : [];
-    const form = await createCompleteMutation.mutateAsync({
-      title: config?.title || template.name,
-      description: config?.description || template.description,
-      steps,
-    });
-    setLocation(`/builder/${form.id}`);
-  };
-  
   const handleTogglePublish = async (formId: string) => {
     setPublishingId(formId);
     try {
@@ -150,17 +125,19 @@ export default function Dashboard() {
     <LayoutShell>
       <div className="space-y-8">
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold font-display">Dashboard</h1>
-            <p className="text-muted-foreground mt-1">Manage your forms and view performance.</p>
+        <div className="rounded-3xl border border-border/70 bg-card px-6 py-6 shadow-[0_10px_28px_rgba(24,48,112,0.08)] md:px-8">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-bold font-display text-[#1a2a4b]">Dashboard</h1>
+              <p className="text-muted-foreground mt-1">Manage your forms and track submissions from one workspace.</p>
+            </div>
+            <CreateFormDialog open={createOpen} onOpenChange={(open) => {
+              setCreateOpen(open);
+              if (!open && location === "/dashboard/new") {
+                setLocation("/dashboard");
+              }
+            }} />
           </div>
-          <CreateFormDialog open={createOpen} onOpenChange={(open) => {
-            setCreateOpen(open);
-            if (!open && location === "/dashboard/new") {
-              setLocation("/dashboard");
-            }
-          }} />
         </div>
 
         {/* Stats Grid */}
@@ -171,37 +148,39 @@ export default function Dashboard() {
         </div>
 
         {/* Forms List */}
-        <div>
-          <h2 className="text-xl font-bold font-display mb-4">Your Forms</h2>
-          {forms && forms.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {forms.map((form) => (
-                <FormCard
-                  key={form.id}
-                  form={form}
-                  onViewSubmissions={() => setSelectedFormId(form.id)}
-                  onDelete={() => deleteFormMutation.mutate(form.id)}
-                  onTogglePublish={() => handleTogglePublish(form.id)}
-                  onClone={() => handleClone(form.id)}
-                  isPublishing={publishingId === form.id}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-20 bg-muted/30 rounded-2xl border border-dashed border-border">
-              <div className="mx-auto bg-muted p-4 rounded-full w-fit mb-4">
-                <FileText className="w-8 h-8 text-muted-foreground" />
+        <div className="rounded-3xl border border-border/70 bg-card px-5 py-6 shadow-[0_10px_28px_rgba(24,48,112,0.08)] md:px-7">
+          <div>
+            <h2 className="text-xl font-bold font-display mb-4 text-[#1a2a4b]">Your Forms</h2>
+            {forms && forms.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {forms.map((form) => (
+                  <FormCard
+                    key={form.id}
+                    form={form}
+                    onViewSubmissions={() => setSelectedFormId(form.id)}
+                    onDelete={() => deleteFormMutation.mutate(form.id)}
+                    onTogglePublish={() => handleTogglePublish(form.id)}
+                    onClone={() => handleClone(form.id)}
+                    isPublishing={publishingId === form.id}
+                  />
+                ))}
               </div>
-              <h3 className="text-lg font-medium">No forms yet</h3>
-              <p className="text-muted-foreground mb-6">Create your first form to get started</p>
-              <CreateFormDialog open={createOpen} onOpenChange={(open) => {
-                setCreateOpen(open);
-                if (!open && location === "/dashboard/new") {
-                  setLocation("/dashboard");
-                }
-              }} />
-            </div>
-          )}
+            ) : (
+              <div className="text-center py-20 bg-muted/30 rounded-2xl border border-dashed border-border">
+                <div className="mx-auto bg-muted p-4 rounded-full w-fit mb-4">
+                  <FileText className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-medium">No forms yet</h3>
+                <p className="text-muted-foreground mb-6">Create your first form to get started</p>
+                <CreateFormDialog open={createOpen} onOpenChange={(open) => {
+                  setCreateOpen(open);
+                  if (!open && location === "/dashboard/new") {
+                    setLocation("/dashboard");
+                  }
+                }} />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </LayoutShell>
@@ -303,7 +282,7 @@ function SubmissionsView({ formId }: { formId: string }) {
         </Button>
       </div>
 
-      <Card>
+      <Card className="overflow-hidden border-border/70 shadow-[0_10px_24px_rgba(24,48,112,0.08)]">
         <Table>
           <TableHeader>
             <TableRow>
@@ -368,9 +347,9 @@ function SubmissionsView({ formId }: { formId: string }) {
 
 function StatCard({ title, value, icon }: { title: string, value: number, icon: React.ReactNode }) {
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className="border-border/70 bg-card hover:shadow-md transition-shadow">
       <CardContent className="p-6 flex items-center gap-4">
-        <div className="p-3 rounded-xl bg-muted/50">
+        <div className="p-3 rounded-xl bg-[#eef3ff]">
           {icon}
         </div>
         <div>
@@ -408,13 +387,13 @@ function FormCard({
       transition={{ duration: 0.2 }}
     >
       <Card
-        className={`h-full flex flex-col hover:border-primary/50 transition-colors group ${
+        className={`h-full flex flex-col border-border/70 bg-card hover:border-primary/50 transition-colors group ${
           form.isPublished ? "ring-2 ring-emerald-400/70 shadow-[0_0_24px_rgba(16,185,129,0.25)]" : ""
         }`}
       >
         <CardHeader className="flex-1">
           <div className="flex justify-between items-start">
-            <div className={`px-2 py-1 rounded-md text-xs font-medium ${form.isPublished ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
+            <div className={`px-2 py-1 rounded-md text-xs font-medium ${form.isPublished ? 'bg-emerald-100 text-emerald-700' : 'bg-[#edf2ff] text-[#5a6d93]'}`}>
               {form.isPublished ? 'Published' : 'Draft'}
             </div>
             <DropdownMenu>
@@ -452,7 +431,7 @@ function FormCard({
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <CardTitle className="mt-4 font-display truncate">{form.title}</CardTitle>
+          <CardTitle className="mt-4 font-display truncate text-[#1d2d4d]">{form.title}</CardTitle>
           <CardDescription className="line-clamp-2 mt-2">
             {form.description || "No description provided."}
           </CardDescription>
@@ -509,7 +488,6 @@ function CreateFormDialog({ open, onOpenChange }: { open?: boolean; onOpenChange
   const [activeTab, setActiveTab] = useState<'scratch' | 'ai' | 'template'>('ai');
   const [prompt, setPrompt] = useState("");
   const [title, setTitle] = useState("");
-  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
   const [model, setModel] = useState("gemini-2.5-flash");
   const [complexity, setComplexity] = useState<"compact" | "balanced" | "detailed">("detailed");
   const [tone, setTone] = useState<"professional" | "friendly" | "formal">("professional");
@@ -565,11 +543,11 @@ function CreateFormDialog({ open, onOpenChange }: { open?: boolean; onOpenChange
 
         <div className="grid grid-cols-3 gap-4 my-6">
           <div 
-            className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${activeTab === 'ai' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'}`}
+            className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${activeTab === 'ai' ? 'border-[#f0be57] bg-[#fff6e4]' : 'border-border hover:border-[#f0be57]'}`}
             onClick={() => setActiveTab('ai')}
             data-testid="tab-create-ai"
           >
-            <div className="p-2 bg-purple-100 rounded-lg w-fit text-purple-600 mb-3">
+            <div className="p-2 bg-[#fff0ce] rounded-lg w-fit text-[#c17c00] mb-3">
               <Sparkles className="w-6 h-6" />
             </div>
             <h3 className="font-bold">Generate with AI</h3>
@@ -577,11 +555,11 @@ function CreateFormDialog({ open, onOpenChange }: { open?: boolean; onOpenChange
           </div>
           
           <div 
-            className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${activeTab === 'scratch' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'}`}
+            className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${activeTab === 'scratch' ? 'border-[#8ba5d5] bg-[#eef3ff]' : 'border-border hover:border-[#8ba5d5]'}`}
             onClick={() => setActiveTab('scratch')}
             data-testid="tab-create-scratch"
           >
-            <div className="p-2 bg-blue-100 rounded-lg w-fit text-blue-600 mb-3">
+            <div className="p-2 bg-[#e8f0ff] rounded-lg w-fit text-[#3569d0] mb-3">
               <Plus className="w-6 h-6" />
             </div>
             <h3 className="font-bold">Start from Scratch</h3>

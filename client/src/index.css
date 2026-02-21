@@ -1,65 +1,64 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --font-display: 'Space Grotesk', sans-serif;
-  --font-body: 'Manrope', sans-serif;
+  --font-display: 'Sora', sans-serif;
+  --font-body: 'Plus Jakarta Sans', sans-serif;
 
-  /* Noir Studio Palette - Carbon/Graphite/Gold */
-  --background: 230 18% 7%;
-  --foreground: 20 14% 96%;
+  --background: 220 39% 92%;
+  --foreground: 222 48% 20%;
 
-  --card: 228 16% 10%;
-  --card-foreground: 20 14% 96%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 48% 20%;
 
-  --popover: 228 16% 12%;
-  --popover-foreground: 20 14% 96%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 48% 20%;
 
-  --primary: 38 92% 56%;
-  --primary-foreground: 220 20% 8%;
+  --primary: 223 76% 54%;
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 225 14% 16%;
-  --secondary-foreground: 20 14% 96%;
+  --secondary: 220 35% 88%;
+  --secondary-foreground: 222 48% 20%;
 
-  --muted: 225 14% 14%;
-  --muted-foreground: 216 10% 68%;
+  --muted: 220 30% 87%;
+  --muted-foreground: 220 15% 45%;
 
-  --accent: 200 90% 55%;
-  --accent-foreground: 230 18% 7%;
+  --accent: 35 96% 52%;
+  --accent-foreground: 0 0% 100%;
 
-  --destructive: 0 76% 56%;
-  --destructive-foreground: 20 14% 96%;
+  --destructive: 0 78% 57%;
+  --destructive-foreground: 0 0% 100%;
 
-  --border: 225 12% 18%;
-  --input: 225 12% 18%;
-  --ring: 38 92% 56%;
+  --border: 220 30% 79%;
+  --input: 220 30% 79%;
+  --ring: 223 76% 54%;
 
-  --radius: 0.85rem;
+  --radius: 1rem;
 }
 
 .dark {
-  --background: 230 18% 7%;
-  --foreground: 20 14% 96%;
-  --card: 228 16% 10%;
-  --card-foreground: 20 14% 96%;
-  --popover: 228 16% 12%;
-  --popover-foreground: 20 14% 96%;
-  --primary: 38 92% 56%;
-  --primary-foreground: 220 20% 8%;
-  --secondary: 225 14% 16%;
-  --secondary-foreground: 20 14% 96%;
-  --muted: 225 14% 14%;
-  --muted-foreground: 216 10% 68%;
-  --accent: 200 90% 55%;
-  --accent-foreground: 230 18% 7%;
-  --destructive: 0 76% 56%;
-  --destructive-foreground: 20 14% 96%;
-  --border: 225 12% 18%;
-  --input: 225 12% 18%;
-  --ring: 38 92% 56%;
+  --background: 220 39% 92%;
+  --foreground: 222 48% 20%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 48% 20%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 48% 20%;
+  --primary: 223 76% 54%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 35% 88%;
+  --secondary-foreground: 222 48% 20%;
+  --muted: 220 30% 87%;
+  --muted-foreground: 220 15% 45%;
+  --accent: 35 96% 52%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 78% 57%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 30% 79%;
+  --input: 220 30% 79%;
+  --ring: 223 76% 54%;
 }
 
 @layer base {
@@ -69,10 +68,7 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-body);
-    background-image:
-      radial-gradient(1200px 600px at 20% -10%, rgba(248, 197, 73, 0.15), transparent 55%),
-      radial-gradient(900px 500px at 90% 0%, rgba(45, 212, 191, 0.12), transparent 60%),
-      radial-gradient(1000px 700px at 50% 120%, rgba(59, 130, 246, 0.14), transparent 60%);
+    background-image: linear-gradient(180deg, rgba(71, 112, 223, 0.12) 0%, rgba(233, 238, 248, 0.85) 18%, rgba(227, 234, 247, 1) 100%);
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
@@ -82,17 +78,17 @@
 
 @layer components {
   .glass-card {
-    @apply bg-white/5 backdrop-blur-md border border-white/10 shadow-xl;
+    @apply bg-white/90 backdrop-blur-sm border border-white shadow-lg;
   }
   
   .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-amber-400 to-emerald-300;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-500 to-cyan-500;
   }
 
   .premium-shadow {
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.04),
-                0 6px 20px rgba(0,0,0,0.35),
-                0 18px 60px rgba(0,0,0,0.35);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.55),
+                0 12px 30px rgba(25, 58, 135, 0.08),
+                0 25px 80px rgba(24, 54, 124, 0.1);
   }
 }
 
@@ -105,7 +101,7 @@
   @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-muted-foreground/30 rounded-full hover:bg-muted-foreground/40 transition-colors;
+  @apply bg-primary/25 rounded-full hover:bg-primary/35 transition-colors;
 }
 
 /* Animation Utilities */
