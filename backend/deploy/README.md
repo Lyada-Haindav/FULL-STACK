@@ -4,16 +4,19 @@ This deploys frontend + backend on one EC2 instance:
 - Backend runs as a `systemd` service.
 - Nginx serves frontend static files.
 - Nginx proxies `/api/*` to backend on `127.0.0.1:8080`.
+- Supports Ubuntu and Amazon Linux.
 
 ## 1. Launch EC2
 
-Use Ubuntu 22.04 and allow inbound ports `22`, `80`, `443`.
+Use Linux (Amazon Linux 2023 or Ubuntu 22.04) and allow inbound ports `22`, `80`, `443`.
 
 ## 2. SSH
 
 ```bash
-ssh -i your-key.pem ubuntu@your-ec2-ip
+ssh -i your-key.pem ec2-user@your-ec2-ip
 ```
+
+For Ubuntu, user is `ubuntu`.
 
 ## 3. Prepare server
 
@@ -70,6 +73,12 @@ sudo systemctl restart form-weaver-backend
 sudo journalctl -u form-weaver-backend -f
 ```
 
+You can override runtime user if needed:
+
+```bash
+APP_RUN_USER=ec2-user APP_RUN_GROUP=ec2-user APP_DOMAIN=your-domain.com ./backend/deploy/deploy.sh
+```
+
 ## 8. Nginx
 
 Nginx config is generated at:
@@ -82,6 +91,6 @@ Nginx config is generated at:
 ## 9. SSL (optional)
 
 ```bash
-sudo apt install -y certbot python3-certbot-nginx
+sudo dnf install -y certbot python3-certbot-nginx || sudo apt install -y certbot python3-certbot-nginx
 sudo certbot --nginx -d your-domain.com
 ```

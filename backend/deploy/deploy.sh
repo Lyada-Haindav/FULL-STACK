@@ -13,8 +13,15 @@ WEB_ROOT="/var/www/form-weaver"
 JAR_FILE="$APP_DIR/$APP_NAME.jar"
 ENV_FILE="$APP_DIR/.env"
 SERVICE_FILE="/etc/systemd/system/$APP_NAME.service"
-NGINX_FILE="/etc/nginx/sites-available/$APP_NAME"
 DOMAIN="${APP_DOMAIN:-_}"
+APP_RUN_USER="${APP_RUN_USER:-${SUDO_USER:-$USER}}"
+APP_RUN_GROUP="${APP_RUN_GROUP:-$(id -gn "$APP_RUN_USER")}"
+JAVA_BIN="$(command -v java)"
+
+if [ -z "$JAVA_BIN" ]; then
+  echo "Java binary not found in PATH."
+  exit 1
+fi
 
 echo "Deploying Form Weaver (frontend + backend) ..."
 
@@ -42,7 +49,17 @@ fi
 echo "Publishing frontend to $WEB_ROOT ..."
 sudo mkdir -p "$WEB_ROOT"
 sudo rsync -a --delete "$APP_DIR/dist/public/" "$WEB_ROOT/"
-sudo chown -R www-data:www-data "$WEB_ROOT"
+if id -u www-data >/dev/null 2>&1; then
+  NGINX_USER="www-data"
+  NGINX_GROUP="www-data"
+elif id -u nginx >/dev/null 2>&1; then
+  NGINX_USER="nginx"
+  NGINX_GROUP="nginx"
+else
+  NGINX_USER="root"
+  NGINX_GROUP="root"
+fi
+sudo chown -R "$NGINX_USER:$NGINX_GROUP" "$WEB_ROOT"
 
 echo "Building backend jar..."
 cd "$BACKEND_DIR"
@@ -88,12 +105,12 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=ubuntu
-Group=ubuntu
+User=$APP_RUN_USER
+Group=$APP_RUN_GROUP
 WorkingDirectory=$APP_DIR
 EnvironmentFile=-$ENV_FILE
 Environment=SPRING_PROFILES_ACTIVE=prod
-ExecStart=/usr/bin/java -jar $JAR_FILE
+ExecStart=$JAVA_BIN -jar $JAR_FILE
 SuccessExitStatus=143
 Restart=always
 RestartSec=5
@@ -104,7 +121,9 @@ WantedBy=multi-user.target
 EOF
 
 echo "Writing Nginx reverse proxy config..."
-sudo tee "$NGINX_FILE" > /dev/null <<EOF
+if [ -d /etc/nginx/sites-available ]; then
+  NGINX_FILE="/etc/nginx/sites-available/$APP_NAME"
+  sudo tee "$NGINX_FILE" > /dev/null <<EOF
 server {
     listen 80;
     server_name $DOMAIN;
@@ -126,8 +145,33 @@ server {
 }
 EOF
 
-sudo ln -sf "$NGINX_FILE" "/etc/nginx/sites-enabled/$APP_NAME"
-sudo rm -f /etc/nginx/sites-enabled/default
+  sudo ln -sf "$NGINX_FILE" "/etc/nginx/sites-enabled/$APP_NAME"
+  sudo rm -f /etc/nginx/sites-enabled/default
+else
+  NGINX_FILE="/etc/nginx/conf.d/$APP_NAME.conf"
+  sudo tee "$NGINX_FILE" > /dev/null <<EOF
+server {
+    listen 80;
+    server_name $DOMAIN;
+    client_max_body_size 30m;
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    location / {
+        root $WEB_ROOT;
+        index index.html;
+        try_files \$uri \$uri/ /index.html;
+    }
+}
+EOF
+fi
+
 sudo nginx -t
 sudo systemctl restart nginx
 
