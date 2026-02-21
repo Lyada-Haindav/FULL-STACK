@@ -41,9 +41,32 @@ public class AuthService {
 
   public Optional<UserDto> register(RegisterRequest request) {
     String normalizedEmail = normalizeEmail(request.email());
+    Optional<AppUser> existingOpt = userRepository.findByEmailIgnoreCase(normalizedEmail);
+    if (existingOpt.isPresent()) {
+      AppUser existing = existingOpt.get();
+      if (existing.isEmailVerified()) {
+        return Optional.empty();
+      }
 
-    if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
-      return Optional.empty();
+      // User exists but is not verified yet: refresh token and resend verification.
+      if (StringUtils.hasText(request.firstName())) {
+        existing.setFirstName(request.firstName().trim());
+      }
+      if (StringUtils.hasText(request.lastName())) {
+        existing.setLastName(request.lastName().trim());
+      }
+      existing.setEmailVerificationToken(generateVerificationToken());
+      existing.setEmailVerificationExpiresAt(Instant.now().plus(VERIFICATION_TTL));
+      existing.touch();
+      existing = userRepository.save(existing);
+
+      brevoEmailService.sendVerificationEmail(
+        existing.getEmail(),
+        displayName(existing),
+        existing.getEmailVerificationToken()
+      );
+
+      return Optional.of(toDto(existing));
     }
 
     AppUser user = new AppUser();

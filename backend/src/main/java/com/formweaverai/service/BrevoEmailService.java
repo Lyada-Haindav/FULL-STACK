@@ -79,15 +79,22 @@ public class BrevoEmailService {
   }
 
   private void sendHtmlEmail(String recipientEmail, String subject, String htmlBody, String kind) {
+    String primaryFrom = resolveFromEmail();
     try {
-      MimeMessage message = mailSender.createMimeMessage();
-      MimeMessageHelper helper = new MimeMessageHelper(message, "UTF-8");
-      helper.setTo(recipientEmail);
-      helper.setFrom(resolveFromEmail());
-      helper.setSubject(subject);
-      helper.setText(htmlBody, true);
-      mailSender.send(message);
+      sendHtmlEmailWithFrom(primaryFrom, recipientEmail, subject, htmlBody);
     } catch (MailException | MessagingException ex) {
+      // If sender is misconfigured/unverified, retry once with SMTP login as From.
+      if (!smtpUsername.isBlank() && !smtpUsername.equalsIgnoreCase(primaryFrom)) {
+        try {
+          sendHtmlEmailWithFrom(smtpUsername, recipientEmail, subject, htmlBody);
+          logger.warn("Primary sender failed for {} email, fallback sender used: {}", kind, smtpUsername);
+          return;
+        } catch (MailException | MessagingException fallbackEx) {
+          logger.error("Failed to send {} email to {} using primary and fallback senders", kind, recipientEmail, fallbackEx);
+          return;
+        }
+      }
+
       logger.error("Failed to send {} email to {}", kind, recipientEmail, ex);
     }
   }
@@ -131,5 +138,16 @@ public class BrevoEmailService {
       return smtpUsername;
     }
     return "no-reply@formweaver.local";
+  }
+
+  private void sendHtmlEmailWithFrom(String from, String recipientEmail, String subject, String htmlBody)
+    throws MessagingException, MailException {
+    MimeMessage message = mailSender.createMimeMessage();
+    MimeMessageHelper helper = new MimeMessageHelper(message, "UTF-8");
+    helper.setTo(recipientEmail);
+    helper.setFrom(from);
+    helper.setSubject(subject);
+    helper.setText(htmlBody, true);
+    mailSender.send(message);
   }
 }
