@@ -188,12 +188,19 @@ export default function LoginPage() {
                 <Button
                   variant="outline"
                   onClick={async () => {
-                    if (!email) {
-                      toast({ title: "Email required", description: "Enter your email first.", variant: "destructive" });
+                    const enteredEmail = window.prompt("Enter your email for verification link:", email || "");
+                    if (enteredEmail === null) {
+                      return;
+                    }
+
+                    const targetEmail = enteredEmail.trim();
+                    if (!targetEmail) {
+                      toast({ title: "Email required", description: "Please enter a valid email.", variant: "destructive" });
                       return;
                     }
                     try {
-                      await resendVerification({ email });
+                      await resendVerification({ email: targetEmail });
+                      setEmail(targetEmail);
                       toast({ title: "Verification sent", description: "Check your inbox for the new verification email." });
                     } catch (error) {
                       toast({
