@@ -6,6 +6,7 @@ services:
     rootDir: backend
     dockerfilePath: Dockerfile
     autoDeploy: true
+    healthCheckPath: /api/templates
     envVars:
       - key: MONGODB_URI
         sync: false
