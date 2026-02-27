@@ -5,15 +5,23 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Suspense, lazy } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import LandingPage from "@/pages/landing-page";
+import LoginPage from "@/pages/login";
+import Dashboard from "@/pages/dashboard";
 
-const LandingPage = lazy(() => import("@/pages/landing-page"));
-const LoginPage = lazy(() => import("@/pages/login"));
-const Dashboard = lazy(() => import("@/pages/dashboard"));
 const FormBuilder = lazy(() => import("@/pages/form-builder"));
 const PublicForm = lazy(() => import("@/pages/public-form"));
 const TemplatesPage = lazy(() => import("@/pages/templates"));
 const VerifyEmailPage = lazy(() => import("@/pages/verify-email"));
 const NotFound = lazy(() => import("@/pages/not-found"));
+
+function PageFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">
+      Loading FormFlow AI...
+    </div>
+  );
+}
 
 function Router() {
   const { user, isLoading } = useAuth();
@@ -23,7 +31,7 @@ function Router() {
   // If user is authenticated, show authenticated routes
   if (user && !isLoading) {
     return (
-      <Suspense fallback={<div className="min-h-screen bg-background" />}>
+      <Suspense fallback={<PageFallback />}>
         <Switch>
           <Route path="/login">
             {/* Redirect authenticated users from login to dashboard */}
@@ -44,7 +52,7 @@ function Router() {
 
   // If user is not authenticated, show public routes
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+    <Suspense fallback={<PageFallback />}>
       <Switch>
         <Route path="/" component={LandingPage} />
         <Route path="/login" component={LoginPage} />
