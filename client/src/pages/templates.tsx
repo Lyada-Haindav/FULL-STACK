@@ -5,7 +5,8 @@ import { LayoutShell } from "@/components/layout-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { LayoutTemplate, ArrowRight, Users, Loader2, Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { LayoutTemplate, ArrowRight, Users, Loader2, Sparkles, Search, X } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -24,9 +25,25 @@ const categories = [
   { id: "operations", name: "Operations" },
   { id: "finance", name: "Finance" },
   { id: "it", name: "IT" },
-  { id: "real estate", name: "Real Estate" },
+  { id: "real-estate", name: "Real Estate" },
   { id: "legal", name: "Legal" },
 ];
+
+function normalizeCategoryKey(value?: string) {
+  return (value || "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function titleCaseFromSlug(value: string) {
+  return value
+    .split("-")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
 
 function getTemplateIcon(iconName?: string) {
   switch (iconName) {
@@ -168,6 +185,7 @@ function TemplateCard({
 export default function TemplatesPage() {
   const { data: templates = [], isLoading, error } = useTemplates();
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [previewTemplate, setPreviewTemplate] = useState<any>(null);
   const createCompleteMutation = useCreateCompleteForm();
   const [, setLocation] = useLocation();
@@ -175,13 +193,59 @@ export default function TemplatesPage() {
 
   const currentCategory = selectedCategory || "all";
 
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    templates.forEach((template) => {
+      const key = normalizeCategoryKey(template.category);
+      if (!key) return;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return counts;
+  }, [templates]);
+
+  const dynamicCategories = useMemo(() => {
+    const known = new Set(categories.map((category) => category.id));
+    return Object.keys(categoryCounts)
+      .filter((key) => !known.has(key))
+      .map((key) => ({ id: key, name: titleCaseFromSlug(key) }));
+  }, [categoryCounts]);
+
+  const categoryTabs = useMemo(() => [...categories, ...dynamicCategories], [dynamicCategories]);
+
+  const searchFilteredTemplates = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return templates;
+
+    return templates.filter((template) => {
+      return [template.name, template.description, template.category]
+        .map((value) => (value || "").toLowerCase())
+        .some((value) => value.includes(query));
+    });
+  }, [searchQuery, templates]);
+
   const filteredTemplates = useMemo(
     () =>
       currentCategory === "all"
-        ? templates
-        : templates.filter((template) => template.category?.toLowerCase() === currentCategory.toLowerCase()),
-    [currentCategory, templates],
+        ? searchFilteredTemplates
+        : searchFilteredTemplates.filter(
+            (template) => normalizeCategoryKey(template.category) === normalizeCategoryKey(currentCategory),
+          ),
+    [currentCategory, searchFilteredTemplates],
   );
+
+  const sectionedTemplates = useMemo(() => {
+    if (currentCategory !== "all") return [];
+
+    return categoryTabs
+      .filter((category) => category.id !== "all")
+      .map((category) => ({
+        ...category,
+        templates: filteredTemplates.filter(
+          (template) => normalizeCategoryKey(template.category) === normalizeCategoryKey(category.id),
+        ),
+      }))
+      .filter((section) => section.templates.length > 0);
+  }, [categoryTabs, currentCategory, filteredTemplates]);
 
   const handleUseTemplate = async (template: any) => {
     try {
@@ -266,11 +330,51 @@ export default function TemplatesPage() {
               </Link>
             </Button>
           </div>
+
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-[#d9e2f2] bg-[#f7faff] px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#6780a8]">Templates</p>
+              <p className="text-2xl font-display text-[#203259]">{templates.length}</p>
+            </div>
+            <div className="rounded-2xl border border-[#d9e2f2] bg-[#f7faff] px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#6780a8]">Categories</p>
+              <p className="text-2xl font-display text-[#203259]">{categoryTabs.length - 1}</p>
+            </div>
+            <div className="rounded-2xl border border-[#d9e2f2] bg-[#f7faff] px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#6780a8]">Showing</p>
+              <p className="text-2xl font-display text-[#203259]">{filteredTemplates.length}</p>
+            </div>
+          </div>
         </Card>
 
         <div className="rounded-3xl border border-[#c9d5ea] bg-white px-4 py-4 shadow-[0_8px_20px_rgba(24,48,112,0.06)]">
+          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="relative w-full md:max-w-sm">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6c80a5]" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search templates by name, category, or description..."
+                className="h-10 rounded-full border-[#c9d5ea] pl-9 pr-10"
+              />
+              {searchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6c80a5] transition hover:text-[#36558b]"
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              ) : null}
+            </div>
+            <p className="text-sm text-[#5f7297]">
+              {currentCategory === "all" ? "All categories" : titleCaseFromSlug(currentCategory)} • {filteredTemplates.length} results
+            </p>
+          </div>
+
           <div className="flex flex-wrap gap-2">
-            {categories.map((category) => (
+            {categoryTabs.map((category) => (
               <Button
                 key={category.id}
                 variant={currentCategory === category.id ? "default" : "outline"}
@@ -279,7 +383,7 @@ export default function TemplatesPage() {
                 className="rounded-full"
                 data-testid={`button-category-${category.id}`}
               >
-                {category.name}
+                {category.name} {category.id !== "all" ? `(${categoryCounts[category.id] || 0})` : ""}
               </Button>
             ))}
           </div>
@@ -287,22 +391,17 @@ export default function TemplatesPage() {
 
         {currentCategory === "all" ? (
           <div className="space-y-10">
-            {categories.slice(1).map((category) => {
-              const categoryTemplates = templates.filter(
-                (template) => template.category?.toLowerCase() === category.id.toLowerCase(),
-              );
-              if (categoryTemplates.length === 0) return null;
-
+            {sectionedTemplates.map((category) => {
               return (
                 <section key={category.id} className="space-y-4">
                   <div className="flex items-center gap-3">
                     <h2 className="text-2xl font-display text-[#203259]">{category.name}</h2>
                     <Badge className="border border-[#cfdaef] bg-[#eef3ff] text-[#47659a]">
-                      {categoryTemplates.length} templates
+                      {category.templates.length} templates
                     </Badge>
                   </div>
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                    {categoryTemplates.map((template) => (
+                    {category.templates.map((template) => (
                       <TemplateCard
                         key={template.id}
                         template={template}
@@ -340,7 +439,7 @@ export default function TemplatesPage() {
               <p className="mt-2 text-[#5f7297]">
                 {currentCategory === "all"
                   ? "No templates available yet."
-                  : `No templates in the ${currentCategory} category yet.`}
+                  : `No templates in the ${titleCaseFromSlug(currentCategory)} category yet.`}
               </p>
               <Button asChild className="mt-5">
                 <Link href="/dashboard/new">Create your own form</Link>
