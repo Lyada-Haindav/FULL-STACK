@@ -32,6 +32,14 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        // Keep chunk URLs neutral to avoid network filters that block semantic names.
+        entryFileNames: "assets/app-[hash].js",
+        chunkFileNames: "assets/chunk-[hash].js",
+        assetFileNames: "assets/asset-[hash][extname]",
+      },
+    },
   },
   server: {
     fs: {
