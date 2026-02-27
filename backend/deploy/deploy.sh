@@ -134,6 +134,19 @@ server {
     server_name $DOMAIN;
     client_max_body_size 30m;
 
+    location /assets/ {
+        root $WEB_ROOT;
+        try_files \$uri =404;
+        expires 1y;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    location = /index.html {
+        root $WEB_ROOT;
+        expires -1;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+    }
+
     location /api/ {
         proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host \$host;
@@ -146,6 +159,7 @@ server {
         root $WEB_ROOT;
         index index.html;
         try_files \$uri \$uri/ /index.html;
+        add_header Cache-Control "no-cache";
     }
 }
 EOF
@@ -160,6 +174,19 @@ server {
     server_name $DOMAIN;
     client_max_body_size 30m;
 
+    location /assets/ {
+        root $WEB_ROOT;
+        try_files \$uri =404;
+        expires 1y;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    location = /index.html {
+        root $WEB_ROOT;
+        expires -1;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+    }
+
     location /api/ {
         proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host \$host;
@@ -172,6 +199,7 @@ server {
         root $WEB_ROOT;
         index index.html;
         try_files \$uri \$uri/ /index.html;
+        add_header Cache-Control "no-cache";
     }
 }
 EOF

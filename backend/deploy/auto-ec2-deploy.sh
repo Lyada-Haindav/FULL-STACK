@@ -111,6 +111,10 @@ if [[ ! -f "$ENV_PATH" ]]; then
   exit 1
 fi
 
+if [[ "$APP_DOMAIN" = "_" ]]; then
+  APP_DOMAIN="$HOST"
+fi
+
 if [[ "$FRONTEND_BUILD_MODE" != "local" && "$FRONTEND_BUILD_MODE" != "remote" ]]; then
   echo "Error: --frontend-build must be 'local' or 'remote'."
   exit 1

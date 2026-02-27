@@ -111,6 +111,7 @@ chmod +x backend/deploy/auto-ec2-deploy.sh
 
 This command runs from your local machine and completes the full EC2 deployment.
 By default, it builds frontend locally (faster and more stable on t3.micro) and only builds backend on EC2.
+If `--domain _` is passed, the script automatically uses `--host` as Nginx server name.
 
 If you want frontend build on EC2 instead:
 
