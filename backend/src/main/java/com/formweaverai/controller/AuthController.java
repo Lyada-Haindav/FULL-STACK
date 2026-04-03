@@ -119,6 +119,12 @@ public class AuthController {
 
   @GetMapping(value = "/auth/reset-password", produces = MediaType.TEXT_HTML_VALUE)
   public ResponseEntity<String> resetPasswordForm(@RequestParam("token") String token) {
+    if (!appFrontendUrl.isBlank()) {
+      HttpHeaders headers = new HttpHeaders();
+      headers.setLocation(URI.create(appFrontendUrl + "/reset-password?token=" + token));
+      return new ResponseEntity<>(headers, HttpStatus.FOUND);
+    }
+
     return ResponseEntity.ok("""
       <html><body style="font-family:Arial,sans-serif;padding:24px;color:#111827;">
       <h2>Reset your password</h2>

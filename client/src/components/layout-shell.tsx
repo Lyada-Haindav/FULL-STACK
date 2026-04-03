@@ -44,9 +44,9 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
                 size="sm"
                 variant="secondary"
                 className="border border-white/35 bg-white/15 text-white hover:bg-white/25"
-                onClick={() => {
-                  logout();
-                  setLocation("/");
+                onClick={async () => {
+                  await logout();
+                  setLocation("/login");
                 }}
               >
                 <LogOut className="mr-2 h-4 w-4" />

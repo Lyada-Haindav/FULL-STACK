@@ -4,7 +4,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Suspense, lazy } from "react";
-import { useAuth } from "@/hooks/use-auth";
+import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import { AppErrorBoundary } from "@/components/app-error-boundary";
 import LandingPage from "@/pages/landing-page";
 import LoginPage from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
@@ -13,6 +14,7 @@ const FormBuilder = lazy(() => import("@/pages/form-builder"));
 const PublicForm = lazy(() => import("@/pages/public-form"));
 const TemplatesPage = lazy(() => import("@/pages/templates"));
 const VerifyEmailPage = lazy(() => import("@/pages/verify-email"));
+const ResetPasswordPage = lazy(() => import("@/pages/reset-password"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
 function PageFallback() {
@@ -44,6 +46,7 @@ function Router() {
           <Route path="/builder/:id" component={FormBuilder} />
           <Route path="/forms/:id" component={PublicForm} />
           <Route path="/verify-email" component={VerifyEmailPage} />
+          <Route path="/reset-password" component={ResetPasswordPage} />
           <Route component={NotFound} />
         </Switch>
       </Suspense>
@@ -58,6 +61,7 @@ function Router() {
         <Route path="/login" component={LoginPage} />
         <Route path="/forms/:id" component={PublicForm} />
         <Route path="/verify-email" component={VerifyEmailPage} />
+        <Route path="/reset-password" component={ResetPasswordPage} />
         <Route component={LandingPage} />
       </Switch>
       {isLoading && !isPublicForm ? (
@@ -70,10 +74,14 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <AppErrorBoundary>
+            <Toaster />
+            <Router />
+          </AppErrorBoundary>
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

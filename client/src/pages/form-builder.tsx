@@ -13,10 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { 
   ArrowLeft, 
-  Settings, 
-  Save, 
   Eye, 
-  Share2, 
   Type, 
   Hash, 
   List, 
@@ -29,7 +26,10 @@ import {
   FileText,
   Mic,
   Upload,
-  Mail
+  Mail,
+  Clock3,
+  CheckCircle2,
+  AlertCircle
 } from "lucide-react";
 import { ShareFormDialog } from "@/components/share-form-dialog";
 import { useState, useEffect, useMemo } from "react";
@@ -37,6 +37,14 @@ import { DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { motion, AnimatePresence } from "framer-motion";
+
+type SaveState = "idle" | "saving" | "saved" | "error";
+
+type SaveHandlers = {
+  onSaveStart: () => void;
+  onSaveSuccess: () => void;
+  onSaveError: () => void;
+};
 
 export default function FormBuilder() {
   const { id } = useParams();
@@ -46,8 +54,17 @@ export default function FormBuilder() {
   const [theme, setTheme] = useState<any>({});
   const [stepTitleDraft, setStepTitleDraft] = useState("");
   const [stepDescriptionDraft, setStepDescriptionDraft] = useState("");
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const updateForm = useUpdateForm();
   const updateStep = useUpdateStep();
+
+  const markSaving = () => setSaveState("saving");
+  const markSaved = () => {
+    setSaveState("saved");
+    setLastSavedAt(new Date());
+  };
+  const markError = () => setSaveState("error");
   
   useEffect(() => {
     if (form) {
@@ -78,6 +95,35 @@ export default function FormBuilder() {
     }
   }, [form, steps.length, activeStepIndex]);
 
+  const saveStatus = useMemo(() => {
+    if (saveState === "saving") {
+      return {
+        label: "Saving...",
+        icon: <Clock3 className="h-3.5 w-3.5" />,
+        className: "border-amber-200 bg-amber-50 text-amber-700",
+      };
+    }
+    if (saveState === "saved") {
+      return {
+        label: lastSavedAt ? `Saved ${lastSavedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Saved",
+        icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+        className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      };
+    }
+    if (saveState === "error") {
+      return {
+        label: "Save failed",
+        icon: <AlertCircle className="h-3.5 w-3.5" />,
+        className: "border-red-200 bg-red-50 text-red-700",
+      };
+    }
+    return {
+      label: "Draft ready",
+      icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+      className: "border-border bg-muted text-muted-foreground",
+    };
+  }, [lastSavedAt, saveState]);
+
   if (isLoading) return <div>Loading...</div>;
   if (!form) return <div>Form not found</div>;
 
@@ -93,17 +139,31 @@ export default function FormBuilder() {
       return;
     }
 
-    updateStep.mutate({
-      id: currentStep.id,
-      formId,
-      title: normalizedTitle,
-      description: normalizedDescription,
-    });
+    markSaving();
+    updateStep.mutate(
+      {
+        id: currentStep.id,
+        formId,
+        title: normalizedTitle,
+        description: normalizedDescription,
+      },
+      {
+        onSuccess: () => markSaved(),
+        onError: () => markError(),
+      },
+    );
   };
 
   const saveTheme = (next: any) => {
     setTheme(next);
-    updateForm.mutate({ id: formId, theme: next });
+    markSaving();
+    updateForm.mutate(
+      { id: formId, theme: next },
+      {
+        onSuccess: () => markSaved(),
+        onError: () => markError(),
+      },
+    );
   };
 
   return (
@@ -120,6 +180,10 @@ export default function FormBuilder() {
           <h1 className="font-bold text-sm sm:text-lg truncate max-w-[150px] sm:max-w-[200px] md:max-w-md">{form.title}</h1>
           <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded text-xs font-medium uppercase flex-shrink-0">
             {form.isPublished ? 'Published' : 'Draft'}
+          </span>
+          <span className={`hidden sm:inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${saveStatus.className}`}>
+            {saveStatus.icon}
+            {saveStatus.label}
           </span>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
@@ -160,7 +224,13 @@ export default function FormBuilder() {
                   <span className="truncate flex-1 text-sm">{step.title}</span>
                 </div>
               ))}
-              <AddStepButton formId={formId} nextIndex={steps.length} />
+              <AddStepButton
+                formId={formId}
+                nextIndex={steps.length}
+                onSaveStart={markSaving}
+                onSaveSuccess={markSaved}
+                onSaveError={markError}
+              />
             </div>
           </ScrollArea>
         </aside>
@@ -303,21 +373,24 @@ export default function FormBuilder() {
                   fields={currentStep.fields} 
                   formId={formId} 
                   stepId={currentStep.id} 
+                  onSaveStart={markSaving}
+                  onSaveSuccess={markSaved}
+                  onSaveError={markError}
                 />
               )}
             </div>
 
             {/* Add Field Palette (Simplified) */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              <AddFieldButton type="text" icon={<Type className="w-4 h-4" />} label="Text Input" formId={formId} stepId={currentStep?.id} />
-              <AddFieldButton type="email" icon={<Mail className="w-4 h-4" />} label="Email" formId={formId} stepId={currentStep?.id} />
-              <AddFieldButton type="textarea" icon={<FileText className="w-4 h-4" />} label="Textarea" formId={formId} stepId={currentStep?.id} />
-              <AddFieldButton type="number" icon={<Hash className="w-4 h-4" />} label="Number" formId={formId} stepId={currentStep?.id} />
-              <AddFieldButton type="select" icon={<List className="w-4 h-4" />} label="Select" formId={formId} stepId={currentStep?.id} />
-              <AddFieldButton type="radio" icon={<CircleDot className="w-4 h-4" />} label="Radio" formId={formId} stepId={currentStep?.id} />
-              <AddFieldButton type="checkbox" icon={<CheckSquare className="w-4 h-4" />} label="Checkbox" formId={formId} stepId={currentStep?.id} />
-              <AddFieldButton type="date" icon={<CalendarIcon className="w-4 h-4" />} label="Date" formId={formId} stepId={currentStep?.id} />
-              <AddFieldButton type="file" icon={<Upload className="w-4 h-4" />} label="File Upload" formId={formId} stepId={currentStep?.id} />
+              <AddFieldButton type="text" icon={<Type className="w-4 h-4" />} label="Text Input" formId={formId} stepId={currentStep?.id} onSaveStart={markSaving} onSaveSuccess={markSaved} onSaveError={markError} />
+              <AddFieldButton type="email" icon={<Mail className="w-4 h-4" />} label="Email" formId={formId} stepId={currentStep?.id} onSaveStart={markSaving} onSaveSuccess={markSaved} onSaveError={markError} />
+              <AddFieldButton type="textarea" icon={<FileText className="w-4 h-4" />} label="Textarea" formId={formId} stepId={currentStep?.id} onSaveStart={markSaving} onSaveSuccess={markSaved} onSaveError={markError} />
+              <AddFieldButton type="number" icon={<Hash className="w-4 h-4" />} label="Number" formId={formId} stepId={currentStep?.id} onSaveStart={markSaving} onSaveSuccess={markSaved} onSaveError={markError} />
+              <AddFieldButton type="select" icon={<List className="w-4 h-4" />} label="Select" formId={formId} stepId={currentStep?.id} onSaveStart={markSaving} onSaveSuccess={markSaved} onSaveError={markError} />
+              <AddFieldButton type="radio" icon={<CircleDot className="w-4 h-4" />} label="Radio" formId={formId} stepId={currentStep?.id} onSaveStart={markSaving} onSaveSuccess={markSaved} onSaveError={markError} />
+              <AddFieldButton type="checkbox" icon={<CheckSquare className="w-4 h-4" />} label="Checkbox" formId={formId} stepId={currentStep?.id} onSaveStart={markSaving} onSaveSuccess={markSaved} onSaveError={markError} />
+              <AddFieldButton type="date" icon={<CalendarIcon className="w-4 h-4" />} label="Date" formId={formId} stepId={currentStep?.id} onSaveStart={markSaving} onSaveSuccess={markSaved} onSaveError={markError} />
+              <AddFieldButton type="file" icon={<Upload className="w-4 h-4" />} label="File Upload" formId={formId} stepId={currentStep?.id} onSaveStart={markSaving} onSaveSuccess={markSaved} onSaveError={markError} />
             </div>
           </div>
         </main>
@@ -343,14 +416,23 @@ function PublishButton({ form }: { form: any }) {
   );
 }
 
-function AddStepButton({ formId, nextIndex }: { formId: string, nextIndex: number }) {
+function AddStepButton({ formId, nextIndex, onSaveStart, onSaveSuccess, onSaveError }: { formId: string, nextIndex: number } & SaveHandlers) {
   const createStep = useCreateStep();
   
   return (
     <Button 
       variant="ghost" 
       className="w-full justify-start gap-2 text-muted-foreground hover:text-primary"
-      onClick={() => createStep.mutate({ formId, title: "New Step", orderIndex: nextIndex })}
+      onClick={() => {
+        onSaveStart();
+        createStep.mutate(
+          { formId, title: "New Step", orderIndex: nextIndex },
+          {
+            onSuccess: () => onSaveSuccess(),
+            onError: () => onSaveError(),
+          },
+        );
+      }}
     >
       <Plus className="w-4 h-4" />
       Add Step
@@ -358,7 +440,7 @@ function AddStepButton({ formId, nextIndex }: { formId: string, nextIndex: numbe
   );
 }
 
-function AddFieldButton({ type, icon, label, formId, stepId }: any) {
+function AddFieldButton({ type, icon, label, formId, stepId, onSaveStart, onSaveSuccess, onSaveError }: any) {
   const createField = useCreateField();
 
   if (!stepId) return null;
@@ -367,14 +449,20 @@ function AddFieldButton({ type, icon, label, formId, stepId }: any) {
     <Button 
       variant="outline" 
       className="flex flex-col h-20 items-center justify-center gap-2 hover:border-primary hover:text-primary transition-colors bg-card"
-      onClick={() => createField.mutate({ 
-        formId, 
-        stepId, 
-        type, 
-        label: `New ${label}`, 
-        required: false, 
-        orderIndex: 999 
-      })}
+      onClick={() => {
+        onSaveStart();
+        createField.mutate({ 
+          formId, 
+          stepId, 
+          type, 
+          label: `New ${label}`, 
+          required: false, 
+          orderIndex: 999 
+        }, {
+          onSuccess: () => onSaveSuccess(),
+          onError: () => onSaveError(),
+        });
+      }}
     >
       {icon}
       <span className="text-xs">{label}</span>
@@ -382,7 +470,7 @@ function AddFieldButton({ type, icon, label, formId, stepId }: any) {
   );
 }
 
-function FieldsList({ fields, formId, stepId }: { fields: any[], formId: string, stepId: string }) {
+function FieldsList({ fields, formId, stepId, onSaveStart, onSaveSuccess, onSaveError }: { fields: any[], formId: string, stepId: string } & SaveHandlers) {
   const reorder = useReorderFields();
   const sorted = useMemo(() => [...fields].sort((a, b) => a.orderIndex - b.orderIndex), [fields]);
   const [ordered, setOrdered] = useState(sorted);
@@ -402,10 +490,14 @@ function FieldsList({ fields, formId, stepId }: { fields: any[], formId: string,
       orderIndex: index,
     }));
     setOrdered(next);
+    onSaveStart();
     reorder.mutate({
       formId,
       stepId,
       fields: next.map((item) => ({ id: item.id, orderIndex: item.orderIndex })),
+    }, {
+      onSuccess: () => onSaveSuccess(),
+      onError: () => onSaveError(),
     });
   };
 
@@ -414,7 +506,14 @@ function FieldsList({ fields, formId, stepId }: { fields: any[], formId: string,
       <SortableContext items={ordered.map((f) => f.id)} strategy={verticalListSortingStrategy}>
         <div className="space-y-4">
           {ordered.map((field) => (
-            <SortableFieldEditor key={field.id} field={field} formId={formId} />
+            <SortableFieldEditor
+              key={field.id}
+              field={field}
+              formId={formId}
+              onSaveStart={onSaveStart}
+              onSaveSuccess={onSaveSuccess}
+              onSaveError={onSaveError}
+            />
           ))}
           {ordered.length === 0 && (
             <div className="border-2 border-dashed border-border rounded-xl p-12 text-center text-muted-foreground">
@@ -427,7 +526,7 @@ function FieldsList({ fields, formId, stepId }: { fields: any[], formId: string,
   );
 }
 
-function SortableFieldEditor({ field, formId }: { field: any; formId: string }) {
+function SortableFieldEditor({ field, formId, onSaveStart, onSaveSuccess, onSaveError }: { field: any; formId: string } & SaveHandlers) {
   const {
     attributes,
     listeners,
@@ -449,6 +548,9 @@ function SortableFieldEditor({ field, formId }: { field: any; formId: string }) 
       <FieldEditor
         field={field}
         formId={formId}
+        onSaveStart={onSaveStart}
+        onSaveSuccess={onSaveSuccess}
+        onSaveError={onSaveError}
         dragAttributes={attributes}
         dragListeners={listeners}
         dragHandleRef={setActivatorNodeRef}
@@ -460,12 +562,18 @@ function SortableFieldEditor({ field, formId }: { field: any; formId: string }) 
 function FieldEditor({
   field,
   formId,
+  onSaveStart,
+  onSaveSuccess,
+  onSaveError,
   dragAttributes,
   dragListeners,
   dragHandleRef,
 }: {
   field: any;
   formId: string;
+  onSaveStart: () => void;
+  onSaveSuccess: () => void;
+  onSaveError: () => void;
   dragAttributes?: any;
   dragListeners?: any;
   dragHandleRef?: (node: HTMLElement | null) => void;
@@ -477,13 +585,21 @@ function FieldEditor({
 
   const handleBlur = () => {
     if (label !== field.label) {
-      update.mutate({ id: field.id, formId, label });
+      onSaveStart();
+      update.mutate({ id: field.id, formId, label }, {
+        onSuccess: () => onSaveSuccess(),
+        onError: () => onSaveError(),
+      });
     }
   };
 
   const saveRules = (next: any) => {
     setRules(next);
-    update.mutate({ id: field.id, formId, validationRules: next });
+    onSaveStart();
+    update.mutate({ id: field.id, formId, validationRules: next }, {
+      onSuccess: () => onSaveSuccess(),
+      onError: () => onSaveError(),
+    });
   };
 
   return (
@@ -501,7 +617,13 @@ function FieldEditor({
           >
             <GripVertical className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove.mutate({ id: field.id, formId })}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => {
+            onSaveStart();
+            remove.mutate({ id: field.id, formId }, {
+              onSuccess: () => onSaveSuccess(),
+              onError: () => onSaveError(),
+            });
+          }}>
             <Trash2 className="w-4 h-4" />
           </Button>
         </div>
@@ -549,7 +671,13 @@ function FieldEditor({
             <div className="flex items-center gap-2">
               <Switch 
                 checked={field.required} 
-                onCheckedChange={(checked) => update.mutate({ id: field.id, formId, required: checked })} 
+                onCheckedChange={(checked) => {
+                  onSaveStart();
+                  update.mutate({ id: field.id, formId, required: checked }, {
+                    onSuccess: () => onSaveSuccess(),
+                    onError: () => onSaveError(),
+                  });
+                }} 
               />
               <Label className="text-xs text-muted-foreground">Required</Label>
             </div>

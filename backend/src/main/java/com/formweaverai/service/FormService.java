@@ -11,6 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -20,6 +23,9 @@ import java.util.TreeSet;
 
 @Service
 public class FormService {
+  private static final ZoneId DISPLAY_ZONE = ZoneId.of("Asia/Kolkata");
+  private static final DateTimeFormatter SUBMISSION_TIME_FORMATTER =
+    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss 'IST'").withZone(DISPLAY_ZONE);
   private final FormRepository formRepository;
   private final FormStepRepository stepRepository;
   private final FormFieldRepository fieldRepository;
@@ -391,11 +397,17 @@ public class FormService {
         field.setType(fieldInput.type() == null ? "text" : fieldInput.type());
         field.setLabel(fieldInput.label() == null ? "Field" : fieldInput.label());
         field.setPlaceholder(fieldInput.placeholder());
+        field.setDefaultValue(fieldInput.defaultValue());
         field.setRequired(fieldInput.required() != null && fieldInput.required());
         field.setOrderIndex(fieldIndex++);
         if (fieldInput.options() != null) {
           field.setOptions(fieldInput.options());
         }
+        Object rules = fieldInput.validationRules();
+        if ("file".equalsIgnoreCase(field.getType()) && rules == null) {
+          rules = defaultFileRules();
+        }
+        field.setValidationRules(rules);
         fieldRepository.save(field);
       }
     }
@@ -818,7 +830,7 @@ public class FormService {
     sb.append(String.join(",", headers)).append("\n");
     for (Submission submission : submissions) {
       List<String> row = new ArrayList<>();
-      row.add(escapeCsv(submission.getSubmittedAt() == null ? "" : submission.getSubmittedAt().toString()));
+      row.add(escapeCsv(formatSubmissionInstant(submission.getSubmittedAt())));
       Map<String, Object> data = submission.getData() instanceof Map<?, ?> map ? castMap(map) : Map.of();
       for (String key : keys) {
         Object value = data.get(key);
@@ -861,6 +873,10 @@ public class FormService {
   private String escapeCsv(String value) {
     String safe = value == null ? "" : value.replace("\"", "\"\"");
     return "\"" + safe + "\"";
+  }
+
+  private String formatSubmissionInstant(Instant instant) {
+    return instant == null ? "" : SUBMISSION_TIME_FORMATTER.format(instant);
   }
 
   public record SubmissionExport(Form form, List<Submission> submissions, List<FormFile> files, String csv) {}

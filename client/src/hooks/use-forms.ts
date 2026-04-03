@@ -2,11 +2,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { type Form, type FormWithStepsAndFields, type CreateFormRequest, type UpdateFormRequest } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { authHeaders } from "@/lib/auth-utils";
+import { authHeaders, getAuthToken } from "@/lib/auth-utils";
 
 export function useForms() {
+  const token = getAuthToken();
+
   return useQuery({
-    queryKey: [api.forms.list.path],
+    queryKey: [api.forms.list.path, token],
     queryFn: async () => {
       const res = await fetch(api.forms.list.path, { headers: { ...authHeaders() } });
       if (!res.ok) throw new Error("Failed to fetch forms");
@@ -16,8 +18,10 @@ export function useForms() {
 }
 
 export function useForm(id: string) {
+  const token = getAuthToken();
+
   return useQuery({
-    queryKey: [api.forms.get.path, id],
+    queryKey: [api.forms.get.path, id, token],
     queryFn: async () => {
       const url = buildUrl(api.forms.get.path, { id });
       const res = await fetch(url, { headers: { ...authHeaders() } });
@@ -50,6 +54,7 @@ export function useCreateForm() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.forms.list.path] });
+      queryClient.invalidateQueries({ queryKey: ["analytics"] });
       toast({ title: "Form created", description: "Your new form is ready to edit." });
     },
     onError: (error) => {
@@ -76,7 +81,14 @@ export function useUpdateForm() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [api.forms.list.path] });
       queryClient.invalidateQueries({ queryKey: [api.forms.get.path, data.id] });
-      toast({ title: "Changes saved", description: "Form updated successfully." });
+      queryClient.invalidateQueries({ queryKey: ["analytics"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Save failed",
+        description: error instanceof Error ? error.message : "Could not update the form.",
+        variant: "destructive",
+      });
     },
   });
 }
@@ -93,6 +105,7 @@ export function useDeleteForm() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.forms.list.path] });
+      queryClient.invalidateQueries({ queryKey: ["analytics"] });
       toast({ title: "Form deleted", description: "The form has been permanently removed." });
     },
   });
@@ -112,6 +125,7 @@ export function usePublishForm() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [api.forms.list.path] });
       queryClient.invalidateQueries({ queryKey: [api.forms.get.path, data.id] });
+      queryClient.invalidateQueries({ queryKey: ["analytics"] });
       if (data.isPublished) {
         toast({ title: "Form Published!", description: "Your form is now live and accepting submissions." });
       } else {
@@ -134,6 +148,7 @@ export function useCloneForm() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [api.forms.list.path] });
+      queryClient.invalidateQueries({ queryKey: ["analytics"] });
       toast({ title: "Form duplicated", description: "A copy has been created." });
       return data;
     },
@@ -217,6 +232,7 @@ export function useCreateCompleteForm() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.forms.list.path] });
+      queryClient.invalidateQueries({ queryKey: ["analytics"] });
       toast({ title: "Form created!", description: "Your form with all steps is ready." });
     },
     onError: (error) => {

@@ -78,7 +78,7 @@ public class BrevoEmailService {
   }
 
   public void sendPasswordResetEmail(String recipientEmail, String recipientName, String token) {
-    String resetUrl = appBaseUrl + "/api/auth/reset-password?token=" + token;
+    String resetUrl = buildPasswordResetUrl(token);
 
     String subject = "Reset your FormFlow AI password";
     String htmlBody = """
@@ -151,6 +151,13 @@ public class BrevoEmailService {
       return appFrontendUrl + "/verify-email?token=" + token;
     }
     return appBaseUrl + "/api/auth/verify-email?token=" + token;
+  }
+
+  private String buildPasswordResetUrl(String token) {
+    if (!appFrontendUrl.isBlank()) {
+      return appFrontendUrl + "/reset-password?token=" + token;
+    }
+    return appBaseUrl + "/api/auth/reset-password?token=" + token;
   }
 
   private String sanitizeBrevoPassword() {

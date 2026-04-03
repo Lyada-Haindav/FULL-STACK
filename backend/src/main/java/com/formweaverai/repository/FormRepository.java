@@ -7,5 +7,7 @@ import java.util.List;
 
 public interface FormRepository extends MongoRepository<Form, String> {
   List<Form> findAllByUserIdOrderByUpdatedAtDesc(String userId);
+  long countByUserId(String userId);
+  long countByUserIdAndIsPublishedTrue(String userId);
   long countByIsPublishedTrue();
 }

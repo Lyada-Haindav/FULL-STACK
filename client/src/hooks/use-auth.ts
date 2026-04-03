@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import { authHeaders, clearAuthToken, getAuthToken, setAuthToken } from "@/lib/auth-utils";
+import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { authHeaders, clearAuthToken, getAuthToken, setAuthToken, TOKEN_KEY } from "@/lib/auth-utils";
 
 interface User {
   id: string;
@@ -40,43 +40,81 @@ async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}
 }
 
 export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+}
+
+interface AuthContextValue {
+  user: User | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  logout: () => Promise<void>;
+  isLoggingOut: boolean;
+  login: (input: { email: string; password: string }) => Promise<AuthResponse>;
+  isLoggingIn: boolean;
+  register: (input: { email: string; password: string; firstName?: string; lastName?: string }) => Promise<MessageResponse>;
+  isRegistering: boolean;
+  resendVerification: (input: { email: string }) => Promise<MessageResponse>;
+  isResendingVerification: boolean;
+  forgotPassword: (input: { email: string }) => Promise<MessageResponse>;
+  isSendingForgotPassword: boolean;
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const checkUser = async () => {
-      const token = getAuthToken();
-      if (!token) {
+  const checkUser = useCallback(async () => {
+    const token = getAuthToken();
+    if (!token) {
+      setUser(null);
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetchWithTimeout("/api/auth/user", {
+        headers: { ...authHeaders() },
+      }, 8000);
+
+      if (!res.ok) {
+        clearAuthToken();
         setUser(null);
         setIsLoading(false);
         return;
       }
 
-      try {
-        const res = await fetchWithTimeout("/api/auth/user", {
-          headers: { ...authHeaders() },
-        }, 8000);
+      const currentUser = (await res.json()) as User;
+      setUser(currentUser);
+    } catch {
+      clearAuthToken();
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-        if (!res.ok) {
-          clearAuthToken();
-          setUser(null);
-          setIsLoading(false);
-          return;
-        }
+  useEffect(() => {
+    checkUser();
+  }, [checkUser]);
 
-        const currentUser = (await res.json()) as User;
-        setUser(currentUser);
-      } catch {
-        clearAuthToken();
-        setUser(null);
-      } finally {
-        setIsLoading(false);
+  useEffect(() => {
+    const syncAcrossTabs = (event: StorageEvent) => {
+      if (event.key !== TOKEN_KEY) {
+        return;
       }
+      checkUser();
     };
 
-    checkUser();
-  }, []);
+    window.addEventListener("storage", syncAcrossTabs);
+    return () => window.removeEventListener("storage", syncAcrossTabs);
+  }, [checkUser]);
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
@@ -168,11 +206,11 @@ export function useAuth() {
     },
   });
 
-  return {
+  const value = useMemo<AuthContextValue>(() => ({
     user,
     isLoading,
     isAuthenticated: !!user,
-    logout: logoutMutation.mutate,
+    logout: logoutMutation.mutateAsync,
     isLoggingOut: logoutMutation.isPending,
     login: loginMutation.mutateAsync,
     isLoggingIn: loginMutation.isPending,
@@ -182,5 +220,20 @@ export function useAuth() {
     isResendingVerification: resendVerificationMutation.isPending,
     forgotPassword: forgotPasswordMutation.mutateAsync,
     isSendingForgotPassword: forgotPasswordMutation.isPending,
-  };
+  }), [
+    user,
+    isLoading,
+    logoutMutation.mutateAsync,
+    logoutMutation.isPending,
+    loginMutation.mutateAsync,
+    loginMutation.isPending,
+    registerMutation.mutateAsync,
+    registerMutation.isPending,
+    resendVerificationMutation.mutateAsync,
+    resendVerificationMutation.isPending,
+    forgotPasswordMutation.mutateAsync,
+    forgotPasswordMutation.isPending,
+  ]);
+
+  return createElement(AuthContext.Provider, { value }, children);
 }

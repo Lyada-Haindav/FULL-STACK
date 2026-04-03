@@ -1,4 +1,4 @@
-import { useParams, useLocation } from "wouter";
+import { useParams } from "wouter";
 import { useForm } from "@/hooks/use-forms";
 import { useSubmitForm } from "@/hooks/use-submissions";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { useState } from "react";
 import { useForm as useReactForm } from "react-hook-form";
 import { motion, AnimatePresence } from "framer-motion";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { CheckCircle2, ChevronRight, ChevronLeft, Loader2, Mic } from "lucide-react";
+import { CheckCircle2, ChevronRight, ChevronLeft, Loader2 } from "lucide-react";
 import { SimpleVoiceInput } from "@/components/simple-voice-input";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -21,6 +21,7 @@ export default function PublicForm() {
   
   const [currentStep, setCurrentStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
+  const [website, setWebsite] = useState("");
 
   const { register, handleSubmit, setValue, formState: { errors }, trigger, getValues } = useReactForm({
     mode: "onChange",
@@ -64,7 +65,7 @@ export default function PublicForm() {
           });
           
           try {
-            await submit.mutateAsync({ formId, data: submissionData, files: submissionFiles });
+            await submit.mutateAsync({ formId, data: submissionData, files: submissionFiles, website });
             setSubmitted(true);
           } catch (error) {
             console.error("Submission failed:", error);
@@ -161,7 +162,20 @@ export default function PublicForm() {
                 </div>
 
                 <div className="space-y-6">
-                  {step.fields.map((field) => (
+                  <div className="absolute left-[-9999px] top-auto h-px w-px overflow-hidden opacity-0">
+                    <Label htmlFor="website">Leave this field empty</Label>
+                    <Input
+                      id="website"
+                      value={website}
+                      onChange={(event) => setWebsite(event.target.value)}
+                      autoComplete="off"
+                      tabIndex={-1}
+                    />
+                  </div>
+                  {step.fields.map((field) => {
+                    const validationRules = (field.validationRules ?? {}) as Record<string, any>;
+
+                    return (
                     <div key={field.id} className="space-y-2">
                       <Label className="text-base font-medium">
                         {field.label} {field.required && <span className="text-red-500">*</span>}
@@ -173,10 +187,10 @@ export default function PublicForm() {
                             <Input 
                               {...register(`field_${field.id}`, {
                                 required: field.required,
-                                minLength: field.validationRules?.minLength ? { value: field.validationRules.minLength, message: `Min ${field.validationRules.minLength} characters` } : undefined,
-                                maxLength: field.validationRules?.maxLength ? { value: field.validationRules.maxLength, message: `Max ${field.validationRules.maxLength} characters` } : undefined,
-                                pattern: field.validationRules?.pattern
-                                  ? { value: new RegExp(field.validationRules.pattern), message: "Invalid format" }
+                                minLength: validationRules.minLength ? { value: validationRules.minLength, message: `Min ${validationRules.minLength} characters` } : undefined,
+                                maxLength: validationRules.maxLength ? { value: validationRules.maxLength, message: `Max ${validationRules.maxLength} characters` } : undefined,
+                                pattern: validationRules.pattern
+                                  ? { value: new RegExp(validationRules.pattern), message: "Invalid format" }
                                   : field.type === "email"
                                     ? { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Enter a valid email" }
                                     : field.type === "phone" || field.type === "tel"
@@ -184,8 +198,8 @@ export default function PublicForm() {
                                       : field.type === "url" || field.type === "link"
                                         ? { value: /^(https?:\/\/)?([^\s.]+\.)*[^\s.]+\.[^\s]{2,}(\/\S*)?$/, message: "Enter a valid URL" }
                                         : undefined,
-                                min: field.type === 'number' && field.validationRules?.min != null ? { value: field.validationRules.min, message: `Min ${field.validationRules.min}` } : undefined,
-                                max: field.type === 'number' && field.validationRules?.max != null ? { value: field.validationRules.max, message: `Max ${field.validationRules.max}` } : undefined,
+                                min: field.type === 'number' && validationRules.min != null ? { value: validationRules.min, message: `Min ${validationRules.min}` } : undefined,
+                                max: field.type === 'number' && validationRules.max != null ? { value: validationRules.max, message: `Max ${validationRules.max}` } : undefined,
                                 onChange: () => {
                                   const fieldName = `field_${field.id}`;
                                   trigger(fieldName);
@@ -222,9 +236,9 @@ export default function PublicForm() {
                             <Textarea 
                               {...register(`field_${field.id}`, {
                                 required: field.required,
-                                minLength: field.validationRules?.minLength ? { value: field.validationRules.minLength, message: `Min ${field.validationRules.minLength} characters` } : undefined,
-                                maxLength: field.validationRules?.maxLength ? { value: field.validationRules.maxLength, message: `Max ${field.validationRules.maxLength} characters` } : undefined,
-                                pattern: field.validationRules?.pattern ? { value: new RegExp(field.validationRules.pattern), message: "Invalid format" } : undefined,
+                                minLength: validationRules.minLength ? { value: validationRules.minLength, message: `Min ${validationRules.minLength} characters` } : undefined,
+                                maxLength: validationRules.maxLength ? { value: validationRules.maxLength, message: `Max ${validationRules.maxLength} characters` } : undefined,
+                                pattern: validationRules.pattern ? { value: new RegExp(validationRules.pattern), message: "Invalid format" } : undefined,
                                 onChange: () => {
                                   const fieldName = `field_${field.id}`;
                                   trigger(fieldName);
@@ -272,8 +286,8 @@ export default function PublicForm() {
                               required: field.required,
                               validate: (value: FileList) => {
                                 if (!value || value.length === 0) return true;
-                                const maxFiles = field.validationRules?.maxFiles ?? 3;
-                                const maxSizeMb = field.validationRules?.maxSizeMb ?? 10;
+                                const maxFiles = validationRules.maxFiles ?? 3;
+                                const maxSizeMb = validationRules.maxSizeMb ?? 10;
                                 if (value.length > maxFiles) return `Max ${maxFiles} files`;
                                 const maxSize = maxSizeMb * 1024 * 1024;
                                 for (const file of Array.from(value)) {
@@ -288,7 +302,7 @@ export default function PublicForm() {
                             })}
                             type="file"
                             className="bg-muted/40 border-border/60"
-                            multiple={(field.validationRules?.maxFiles ?? 3) > 1}
+                            multiple={(validationRules.maxFiles ?? 3) > 1}
                             onKeyDown={handleEnter}
                           />
                         ) : field.type === 'date' ? (
@@ -324,7 +338,7 @@ export default function PublicForm() {
                         </p>
                       )}
                     </div>
-                  ))}
+                  )})}
                 </div>
               </CardContent>
             </Card>

@@ -11,6 +11,7 @@ import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { normalizeTemplateConfig } from "@/lib/legacy-config";
+import type { Template } from "@shared/schema";
 
 const categories = [
   { id: "all", name: "All Templates" },
@@ -28,6 +29,30 @@ const categories = [
   { id: "real-estate", name: "Real Estate" },
   { id: "legal", name: "Legal" },
 ];
+
+type TemplateFieldConfig = {
+  type?: string;
+  label?: string;
+  placeholder?: string;
+  defaultValue?: string;
+  required?: boolean;
+  options?: unknown;
+  validationRules?: unknown;
+  orderIndex?: number;
+};
+
+type TemplateStepConfig = {
+  title?: string;
+  description?: string;
+  orderIndex?: number;
+  fields?: TemplateFieldConfig[];
+};
+
+type TemplateConfig = {
+  title?: string;
+  description?: string;
+  steps?: TemplateStepConfig[];
+};
 
 function normalizeCategoryKey(value?: string) {
   return (value || "")
@@ -81,14 +106,27 @@ function getTemplateIcon(iconName?: string) {
   }
 }
 
-function getSteps(config: any) {
-  const normalized = normalizeTemplateConfig(config);
-  return normalized?.steps || [];
+function sortByOrderIndex<T extends { orderIndex?: number }>(items: T[]) {
+  return [...items].sort((a, b) => {
+    const left = typeof a.orderIndex === "number" ? a.orderIndex : Number.MAX_SAFE_INTEGER;
+    const right = typeof b.orderIndex === "number" ? b.orderIndex : Number.MAX_SAFE_INTEGER;
+    return left - right;
+  });
 }
 
-function getTemplateStats(config: any) {
+function getSteps(config: unknown): TemplateStepConfig[] {
+  const normalized = normalizeTemplateConfig(config) as TemplateConfig | null;
+  const steps = Array.isArray(normalized?.steps) ? normalized.steps : [];
+
+  return sortByOrderIndex(steps).map((step) => ({
+    ...step,
+    fields: Array.isArray(step.fields) ? sortByOrderIndex(step.fields) : [],
+  }));
+}
+
+function getTemplateStats(config: unknown) {
   const steps = getSteps(config);
-  const fields = steps.reduce((acc: number, step: any) => acc + (step?.fields?.length || 0), 0);
+  const fields = steps.reduce((acc: number, step) => acc + (step?.fields?.length || 0), 0);
   return { steps: steps.length, fields };
 }
 
@@ -98,16 +136,16 @@ function TemplateCard({
   onPreview,
   isPending,
 }: {
-  template: any;
-  onUseTemplate: (template: any) => void;
-  onPreview: (template: any) => void;
+  template: Template;
+  onUseTemplate: (template: Template) => void;
+  onPreview: (template: Template) => void;
   isPending: boolean;
 }) {
   const stats = getTemplateStats(template.config);
   const stepPreview = getSteps(template.config).slice(0, 2);
 
   return (
-    <Card className="h-full rounded-3xl border border-[#c8d5ec] bg-white shadow-[0_10px_26px_rgba(29,52,110,0.08)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(29,52,110,0.12)]">
+    <Card className="flex h-full min-h-[340px] flex-col rounded-3xl border border-[#c8d5ec] bg-white shadow-[0_10px_26px_rgba(29,52,110,0.08)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(29,52,110,0.12)]">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -125,7 +163,7 @@ function TemplateCard({
         <CardDescription className="mt-2 line-clamp-2 text-[#667998]">{template.description}</CardDescription>
       </CardHeader>
 
-      <CardContent className="flex h-full flex-col">
+      <CardContent className="flex flex-1 flex-col">
         <div className="mb-4 flex items-center gap-4 text-sm text-[#5a6f94]">
           <div className="flex items-center gap-1">
             <LayoutTemplate className="h-4 w-4" />
@@ -183,10 +221,11 @@ function TemplateCard({
 }
 
 export default function TemplatesPage() {
-  const { data: templates = [], isLoading, error } = useTemplates();
+  const { data: templates = [], isLoading, error, refetch } = useTemplates();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [previewTemplate, setPreviewTemplate] = useState<any>(null);
+  const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const createCompleteMutation = useCreateCompleteForm();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -247,24 +286,23 @@ export default function TemplatesPage() {
       .filter((section) => section.templates.length > 0);
   }, [categoryTabs, currentCategory, filteredTemplates]);
 
-  const handleUseTemplate = async (template: any) => {
+  const handleUseTemplate = async (template: Template) => {
     try {
-      const config = normalizeTemplateConfig(template.config) as any;
-      const steps = Array.isArray(config?.steps)
-        ? config.steps.map((step: any) => ({
-            title: step.title || "Untitled Step",
-            description: step.description || "",
-            fields: Array.isArray(step.fields)
-              ? step.fields.map((field: any) => ({
-                  type: field.type || "text",
-                  label: field.label || "Field",
-                  placeholder: field.placeholder || "",
-                  required: !!field.required,
-                  options: Array.isArray(field.options) ? field.options : [],
-                }))
-              : [],
-          }))
-        : [];
+      setActiveTemplateId(template.id);
+      const config = (normalizeTemplateConfig(template.config) as TemplateConfig | null) ?? {};
+      const steps = getSteps(template.config).map((step) => ({
+        title: step.title || "Untitled Step",
+        description: step.description || "",
+        fields: (step.fields || []).map((field) => ({
+          type: field.type || "text",
+          label: field.label || "Field",
+          placeholder: field.placeholder || "",
+          defaultValue: field.defaultValue || "",
+          required: !!field.required,
+          options: field.options ?? [],
+          validationRules: field.validationRules ?? null,
+        })),
+      }));
 
       const form = await createCompleteMutation.mutateAsync({
         title: config?.title || template.name,
@@ -276,6 +314,8 @@ export default function TemplatesPage() {
       setLocation(`/builder/${form.id}`);
     } catch {
       toast({ title: "Error", description: "Failed to create form from template.", variant: "destructive" });
+    } finally {
+      setActiveTemplateId(null);
     }
   };
 
@@ -310,6 +350,9 @@ export default function TemplatesPage() {
         <Card className="rounded-3xl border border-[#efc0c0] bg-[#fff4f4] p-8">
           <h2 className="text-xl font-display text-[#8f1d1d]">Failed to load templates</h2>
           <p className="mt-2 text-sm text-[#a84545]">{error.message}</p>
+          <Button className="mt-4" variant="outline" onClick={() => refetch()}>
+            Try again
+          </Button>
         </Card>
       </LayoutShell>
     );
@@ -407,7 +450,7 @@ export default function TemplatesPage() {
                         template={template}
                         onUseTemplate={handleUseTemplate}
                         onPreview={setPreviewTemplate}
-                        isPending={createCompleteMutation.isPending}
+                        isPending={createCompleteMutation.isPending && activeTemplateId === template.id}
                       />
                     ))}
                   </div>
@@ -423,7 +466,7 @@ export default function TemplatesPage() {
                 template={template}
                 onUseTemplate={handleUseTemplate}
                 onPreview={setPreviewTemplate}
-                isPending={createCompleteMutation.isPending}
+                isPending={createCompleteMutation.isPending && activeTemplateId === template.id}
               />
             ))}
           </div>
@@ -437,9 +480,11 @@ export default function TemplatesPage() {
               </div>
               <h3 className="text-xl font-display text-[#203259]">No templates found</h3>
               <p className="mt-2 text-[#5f7297]">
-                {currentCategory === "all"
-                  ? "No templates available yet."
-                  : `No templates in the ${titleCaseFromSlug(currentCategory)} category yet.`}
+                {searchQuery
+                  ? `No templates matched "${searchQuery}". Try a different keyword or category.`
+                  : currentCategory === "all"
+                    ? "No templates available yet."
+                    : `No templates in the ${titleCaseFromSlug(currentCategory)} category yet.`}
               </p>
               <Button asChild className="mt-5">
                 <Link href="/dashboard/new">Create your own form</Link>
@@ -469,7 +514,7 @@ export default function TemplatesPage() {
                 <p className="text-[#5d7196]">{previewTemplate.description}</p>
 
                 <div className="space-y-4">
-                  {getSteps(previewTemplate.config).map((step: any, stepIndex: number) => (
+                  {getSteps(previewTemplate.config).map((step, stepIndex: number) => (
                     <Card key={stepIndex} className="rounded-2xl border border-[#d5dff0] bg-[#f8fbff] p-4">
                       <div className="mb-3 flex items-center gap-2">
                         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f6b42c] text-sm font-bold text-[#1f2537]">
@@ -480,7 +525,7 @@ export default function TemplatesPage() {
                       {step.description ? <p className="mb-3 text-sm text-[#607399]">{step.description}</p> : null}
                       {step.fields?.length ? (
                         <div className="space-y-2">
-                          {step.fields.map((field: any, fieldIndex: number) => (
+                          {step.fields.map((field, fieldIndex: number) => (
                             <div key={fieldIndex} className="flex items-center justify-between rounded-xl border border-[#d8e2f3] bg-white px-3 py-2 text-sm">
                               <span className="font-medium text-[#29406b]">{field.label}</span>
                               <span className="text-xs text-[#64799f]">

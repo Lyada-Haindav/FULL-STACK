@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, buildUrl, type CreateStepRequest, type UpdateStepRequest } from "@shared/routes";
+import { api, buildUrl } from "@shared/routes";
+import { type CreateStepRequest, type UpdateStepRequest } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { authHeaders } from "@/lib/auth-utils";
 

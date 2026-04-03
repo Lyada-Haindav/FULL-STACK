@@ -17,7 +17,9 @@ public record CreateCompleteFormRequest(
     String type,
     String label,
     String placeholder,
+    String defaultValue,
     Boolean required,
-    Object options
+    Object options,
+    Object validationRules
   ) {}
 }

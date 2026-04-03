@@ -3,6 +3,7 @@ package com.formweaverai.controller;
 import com.formweaverai.service.SubmissionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -18,9 +19,9 @@ public class AnalyticsController {
     private SubmissionService submissionService;
 
     @GetMapping("/total-submissions")
-    public ResponseEntity<Map<String, Long>> getTotalSubmissions() {
+    public ResponseEntity<Map<String, Long>> getTotalSubmissions(Authentication authentication) {
         try {
-            long totalSubmissions = submissionService.getTotalSubmissionsCount();
+            long totalSubmissions = submissionService.getTotalSubmissionsCount(getUserId(authentication));
             Map<String, Long> response = new HashMap<>();
             response.put("total", totalSubmissions);
             return ResponseEntity.ok(response);
@@ -33,14 +34,9 @@ public class AnalyticsController {
     }
 
     @GetMapping("/summary")
-    public ResponseEntity<Map<String, Object>> getAnalyticsSummary() {
+    public ResponseEntity<Map<String, Object>> getAnalyticsSummary(Authentication authentication) {
         try {
-            Map<String, Object> summary = new HashMap<>();
-            summary.put("totalSubmissions", submissionService.getTotalSubmissionsCount());
-            summary.put("totalForms", submissionService.getTotalFormsCount());
-            summary.put("publishedForms", submissionService.getPublishedFormsCount());
-            summary.put("recentSubmissions", submissionService.getRecentSubmissionsCount());
-            return ResponseEntity.ok(summary);
+            return ResponseEntity.ok(submissionService.getAnalyticsSummary(getUserId(authentication)));
         } catch (Exception e) {
             // Return zeros if there's any error
             Map<String, Object> summary = new HashMap<>();
@@ -50,5 +46,12 @@ public class AnalyticsController {
             summary.put("recentSubmissions", 0L);
             return ResponseEntity.ok(summary);
         }
+    }
+
+    private String getUserId(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            return "";
+        }
+        return authentication.getName();
     }
 }
