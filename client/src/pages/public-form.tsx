@@ -100,7 +100,7 @@ export default function PublicForm() {
 
   return (
     <div
-      className="min-h-screen bg-background flex flex-col"
+      className="min-h-screen overflow-x-hidden bg-background flex flex-col"
       style={{
         background:
           backgroundStyle === "solid"
@@ -142,17 +142,17 @@ export default function PublicForm() {
         </div>
       </div>
 
-      <main className="flex-1 max-w-3xl w-full mx-auto px-3 py-5 sm:px-6 md:py-12">
+      <main className="flex-1 max-w-3xl w-full mx-auto px-3 py-5 pb-28 sm:px-6 sm:pb-10 md:py-12">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
             initial={{ x: 20, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: -20, opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
           >
             <Card
-              className="shadow-lg border-t-4 border-t-primary bg-card/95 border-border/60"
+              className="premium-shadow border-t-4 border-t-primary bg-card/95 border-border/60"
               style={primaryColor ? { borderTopColor: primaryColor } : undefined}
             >
               <CardContent className="p-4 sm:p-6 md:p-8">
@@ -217,7 +217,7 @@ export default function PublicForm() {
                                         : 'text'
                               }
                               placeholder={field.placeholder || "Your answer..."}
-                              className="h-11 bg-muted/40 border-border/60 pr-12 text-base"
+                              className="h-11 touch-manipulation bg-muted/40 border-border/60 pr-12 text-base"
                               onKeyDown={handleEnter}
                             />
                             {/* Voice Input Integration */}
@@ -244,7 +244,7 @@ export default function PublicForm() {
                                   trigger(fieldName);
                                 },
                               })}
-                              className="bg-muted/40 border-border/60 min-h-[132px] pr-12 text-base"
+                              className="min-h-[132px] touch-manipulation bg-muted/40 border-border/60 pr-12 text-base"
                               placeholder={field.placeholder || "Your answer..."}
                               onKeyDown={handleEnter}
                             />
@@ -265,7 +265,7 @@ export default function PublicForm() {
                                 trigger(fieldName);
                               },
                             })}
-                            className="h-11 w-full rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            className="h-11 w-full rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-base ring-offset-background touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                           >
                             <option value="">Select an option</option>
                             {(field.options || []).map((option: any) => (
@@ -319,7 +319,7 @@ export default function PublicForm() {
                               },
                             })}
                             type="file"
-                            className="min-h-11 bg-muted/40 border-border/60 text-sm"
+                            className="min-h-11 touch-manipulation bg-muted/40 border-border/60 text-sm"
                             multiple={(validationRules.maxFiles ?? 3) > 1}
                             onKeyDown={handleEnter}
                           />
@@ -333,7 +333,7 @@ export default function PublicForm() {
                               },
                             })}
                             type="date"
-                            className="h-11 bg-muted/40 border-border/60 text-base"
+                            className="h-11 touch-manipulation bg-muted/40 border-border/60 text-base"
                             onKeyDown={handleEnter}
                           />
                         ) : (
@@ -345,7 +345,7 @@ export default function PublicForm() {
                                 trigger(fieldName);
                               },
                             })}
-                            className="h-11 bg-muted/40 border-border/60 text-base"
+                            className="h-11 touch-manipulation bg-muted/40 border-border/60 text-base"
                             onKeyDown={handleEnter}
                           />
                         )}
@@ -364,26 +364,28 @@ export default function PublicForm() {
           </motion.div>
         </AnimatePresence>
 
-        <div className="mt-6 flex flex-col-reverse gap-3 sm:mt-8 sm:flex-row sm:items-center sm:justify-between">
-          <Button 
-            variant="ghost" 
-            onClick={() => setCurrentStep(p => Math.max(0, p - 1))}
-            disabled={currentStep === 0}
-            className={currentStep === 0 ? "hidden sm:invisible sm:inline-flex" : "w-full sm:w-auto"}
-          >
-            <ChevronLeft className="mr-2 h-4 w-4" /> Previous
-          </Button>
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border/60 bg-background/92 px-3 py-3 backdrop-blur supports-[padding:max(0px)]:pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:static sm:mt-8 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-0">
+          <div className="mx-auto flex max-w-3xl flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <Button 
+              variant="ghost" 
+              onClick={() => setCurrentStep(p => Math.max(0, p - 1))}
+              disabled={currentStep === 0}
+              className={currentStep === 0 ? "hidden sm:invisible sm:inline-flex" : "w-full touch-manipulation sm:w-auto"}
+            >
+              <ChevronLeft className="mr-2 h-4 w-4" /> Previous
+            </Button>
 
-          <Button
-            onClick={onNext}
-            size="lg"
-            className="w-full px-8 sm:w-auto"
-            style={primaryColor ? { backgroundColor: primaryColor, color: "#0b0f14" } : undefined}
-            disabled={submit.isPending}
-          >
-            {submit.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isLastStep ? "Submit" : "Next"} {!isLastStep && <ChevronRight className="ml-2 h-4 w-4" />}
-          </Button>
+            <Button
+              onClick={onNext}
+              size="lg"
+              className="w-full px-8 touch-manipulation sm:w-auto"
+              style={primaryColor ? { backgroundColor: primaryColor, color: "#0b0f14" } : undefined}
+              disabled={submit.isPending}
+            >
+              {submit.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isLastStep ? "Submit" : "Next"} {!isLastStep && <ChevronRight className="ml-2 h-4 w-4" />}
+            </Button>
+          </div>
         </div>
       </main>
     </div>

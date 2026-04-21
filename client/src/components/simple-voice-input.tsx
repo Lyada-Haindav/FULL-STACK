@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Mic, MicOff, Loader2, AlertCircle } from "lucide-react";
+import { Mic, MicOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -189,12 +189,15 @@ export function SimpleVoiceInput({
         type="button"
         variant="outline"
         size="icon"
-        className={cn("opacity-70 cursor-not-allowed border-orange-300 bg-orange-50 text-orange-600", className)}
+        className={cn(
+          "cursor-not-allowed border-border/70 bg-muted/35 text-muted-foreground opacity-80 touch-manipulation",
+          className,
+        )}
         disabled
         title={title}
         aria-label={title}
       >
-        <AlertCircle className="h-4 w-4" />
+        <MicOff className="h-4 w-4" />
       </Button>
     );
   }
@@ -206,7 +209,7 @@ export function SimpleVoiceInput({
         variant="outline"
         size="icon"
         className={cn(
-          "transition-all duration-300 relative", 
+          "relative touch-manipulation transition-all duration-200", 
           isListening && "border-red-500 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700",
           error && "border-orange-500 bg-orange-50 text-orange-600 hover:bg-orange-100 hover:text-orange-700",
           className
@@ -234,7 +237,7 @@ export function SimpleVoiceInput({
             <MicOff className="h-4 w-4" />
           </>
         ) : error ? (
-          <AlertCircle className="h-4 w-4" />
+          <MicOff className="h-4 w-4" />
         ) : (
           <Mic className="h-4 w-4" />
         )}
