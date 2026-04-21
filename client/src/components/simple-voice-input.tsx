@@ -19,18 +19,29 @@ declare global {
 export function SimpleVoiceInput({ 
   onTranscript, 
   className,
-  language = "en-US"
+  language = "en-IN"
 }: SimpleVoiceInputProps) {
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [isSupported, setIsSupported] = useState(false);
+  const [requiresSecureContext, setRequiresSecureContext] = useState(false);
   const [error, setError] = useState("");
   
   const recognitionRef = useRef<any>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    const isLocalhost = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+    const hasSecureMicrophoneContext = window.isSecureContext || isLocalhost;
+    setRequiresSecureContext(!hasSecureMicrophoneContext);
+
+    if (!hasSecureMicrophoneContext) {
+      setIsSupported(false);
+      setError("Microphone needs HTTPS");
+      return;
+    }
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     setIsSupported(!!SpeechRecognition);
     
@@ -76,7 +87,15 @@ export function SimpleVoiceInput({
 
       recognitionRef.current.onerror = (event: any) => {
         console.error("Speech recognition error:", event.error);
-        setError(event.error || "Speech recognition error");
+        const message =
+          event.error === "not-allowed"
+            ? "Allow microphone permission"
+            : event.error === "no-speech"
+              ? "No speech detected"
+              : event.error === "audio-capture"
+                ? "No microphone found"
+                : event.error || "Speech recognition error";
+        setError(message);
         setIsListening(false);
         setIsProcessing(false);
       };
@@ -101,6 +120,14 @@ export function SimpleVoiceInput({
   }, [language, onTranscript]);
 
   const startListening = useCallback(() => {
+    if (requiresSecureContext) {
+      setError("Microphone needs HTTPS");
+      return;
+    }
+    if (!isSupported) {
+      setError("Speech recognition is not supported in this browser");
+      return;
+    }
     if (recognitionRef.current && !isListening) {
       try {
         setTranscript("");
@@ -118,7 +145,7 @@ export function SimpleVoiceInput({
         setError("Failed to start speech recognition");
       }
     }
-  }, [isListening]);
+  }, [isListening, isSupported, requiresSecureContext]);
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current && isListening) {
@@ -152,15 +179,20 @@ export function SimpleVoiceInput({
     }
   }, [isListening, stopListening]);
 
-  if (!isSupported) {
+  if (!isSupported || requiresSecureContext) {
+    const title = requiresSecureContext
+      ? "Microphone requires HTTPS. Open the app with a secure domain to use voice input."
+      : "Speech recognition not supported in this browser";
+
     return (
       <Button
         type="button"
         variant="outline"
         size="icon"
-        className={cn("opacity-50 cursor-not-allowed", className)}
+        className={cn("opacity-70 cursor-not-allowed border-orange-300 bg-orange-50 text-orange-600", className)}
         disabled
-        title="Speech recognition not supported in this browser"
+        title={title}
+        aria-label={title}
       >
         <AlertCircle className="h-4 w-4" />
       </Button>
@@ -182,6 +214,7 @@ export function SimpleVoiceInput({
         onClick={handleClick}
         onContextMenu={handleContextMenu}
         disabled={isProcessing}
+        aria-label={isListening ? "Stop voice input" : "Start voice input"}
         title={
           error 
             ? `Error: ${error} - Click to retry` 

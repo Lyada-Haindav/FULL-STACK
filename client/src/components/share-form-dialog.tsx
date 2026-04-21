@@ -70,13 +70,13 @@ export function ShareFormDialog({ formId, formTitle, trigger }: ShareFormDialogP
     <Dialog>
       <DialogTrigger asChild>
         {trigger || (
-          <Button variant="outline" size="sm" className="gap-2">
+          <Button variant="outline" size="sm" className="gap-2 px-2 sm:px-3">
             <Share2 className="h-4 w-4" />
-            Share
+            <span className="hidden sm:inline">Share</span>
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md bg-card/95 text-foreground border border-border/60 shadow-2xl">
+      <DialogContent className="max-h-[92vh] w-[calc(100vw-1.5rem)] overflow-y-auto rounded-2xl bg-card/95 text-foreground border border-border/60 shadow-2xl sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Share Form</DialogTitle>
           <DialogDescription>
@@ -91,7 +91,7 @@ export function ShareFormDialog({ formId, formTitle, trigger }: ShareFormDialogP
               <Input 
                 readOnly 
                 value={shareUrl} 
-                className="flex-1 bg-muted/40 border-border/60"
+                className="min-w-0 flex-1 bg-muted/40 border-border/60 text-sm"
                 data-testid="input-share-url"
               />
               <Button 

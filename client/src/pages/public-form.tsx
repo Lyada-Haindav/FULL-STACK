@@ -119,10 +119,10 @@ export default function PublicForm() {
             animate={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
           />
         </div>
-        <div className="max-w-3xl mx-auto px-6 py-4">
-           <div className="flex items-center gap-3">
+        <div className="max-w-3xl mx-auto px-4 py-3 sm:px-6 sm:py-4">
+           <div className="flex min-w-0 items-center gap-3">
              {theme?.logoUrl ? (
-               <div className="h-10 w-10 rounded-xl bg-muted/30 border border-border/60 flex items-center justify-center overflow-hidden">
+               <div className="h-10 w-10 shrink-0 rounded-xl bg-muted/30 border border-border/60 flex items-center justify-center overflow-hidden">
                  <img
                    src={theme.logoUrl}
                    alt="Logo"
@@ -133,16 +133,16 @@ export default function PublicForm() {
                  />
                </div>
              ) : (
-               <div className="h-10 w-10 rounded-xl bg-muted/40 flex items-center justify-center text-xs text-muted-foreground">
+               <div className="h-10 w-10 shrink-0 rounded-xl bg-muted/40 flex items-center justify-center text-xs text-muted-foreground">
                  FF
                </div>
              )}
-             <h1 className="font-bold text-xl">{form.title}</h1>
+             <h1 className="truncate font-bold text-base sm:text-xl">{form.title}</h1>
            </div>
         </div>
       </div>
 
-      <main className="flex-1 max-w-3xl w-full mx-auto p-6 md:py-12">
+      <main className="flex-1 max-w-3xl w-full mx-auto px-3 py-5 sm:px-6 md:py-12">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
@@ -152,16 +152,16 @@ export default function PublicForm() {
             transition={{ duration: 0.2 }}
           >
             <Card
-              className="shadow-lg border-t-4 border-t-primary bg-card/90 border-border/60"
+              className="shadow-lg border-t-4 border-t-primary bg-card/95 border-border/60"
               style={primaryColor ? { borderTopColor: primaryColor } : undefined}
             >
-              <CardContent className="p-8">
-                <div className="mb-8">
-                  <h2 className="text-2xl font-bold font-display mb-2">{step.title}</h2>
-                  {step.description && <p className="text-muted-foreground">{step.description}</p>}
+              <CardContent className="p-4 sm:p-6 md:p-8">
+                <div className="mb-6 sm:mb-8">
+                  <h2 className="text-xl font-bold font-display mb-2 sm:text-2xl">{step.title}</h2>
+                  {step.description && <p className="text-sm text-muted-foreground sm:text-base">{step.description}</p>}
                 </div>
 
-                <div className="space-y-6">
+                <div className="space-y-5 sm:space-y-6">
                   <div className="absolute left-[-9999px] top-auto h-px w-px overflow-hidden opacity-0">
                     <Label htmlFor="website">Leave this field empty</Label>
                     <Input
@@ -177,11 +177,11 @@ export default function PublicForm() {
 
                     return (
                     <div key={field.id} className="space-y-2">
-                      <Label className="text-base font-medium">
+                      <Label className="text-sm font-medium sm:text-base">
                         {field.label} {field.required && <span className="text-red-500">*</span>}
                       </Label>
                       
-                      <div className="flex gap-2">
+                      <div className="w-full">
                         {field.type === 'text' || field.type === 'email' || field.type === 'number' || field.type === 'phone' || field.type === 'tel' || field.type === 'url' || field.type === 'link' ? (
                           <div className="relative flex-1">
                             <Input 
@@ -217,17 +217,17 @@ export default function PublicForm() {
                                         : 'text'
                               }
                               placeholder={field.placeholder || "Your answer..."}
-                              className="bg-muted/40 border-border/60 pr-12"
+                              className="h-11 bg-muted/40 border-border/60 pr-12 text-base"
                               onKeyDown={handleEnter}
                             />
                             {/* Voice Input Integration */}
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10">
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10">
                                <SimpleVoiceInput 
                                  onTranscript={(text: string) => {
                                    const fieldName = `field_${field.id}`;
                                    setValue(fieldName, text, { shouldValidate: true });
                                  }} 
-                                 className="h-8 w-8" 
+                                 className="h-9 w-9" 
                                />
                             </div>
                           </div>
@@ -244,41 +244,59 @@ export default function PublicForm() {
                                   trigger(fieldName);
                                 },
                               })}
-                              className="bg-muted/40 border-border/60 min-h-[120px] pr-12"
+                              className="bg-muted/40 border-border/60 min-h-[132px] pr-12 text-base"
                               placeholder={field.placeholder || "Your answer..."}
                               onKeyDown={handleEnter}
                             />
-                            <div className="absolute right-3 bottom-3 z-10">
+                            <div className="absolute right-2 bottom-2 z-10">
                                <SimpleVoiceInput onTranscript={(text: string) => {
                                  const fieldName = `field_${field.id}`;
                                  const current = getValues(fieldName) || "";
                                  setValue(fieldName, current ? `${current} ${text}` : text, { shouldValidate: true });
-                               }} className="h-8 w-8" />
+                               }} className="h-9 w-9" />
                             </div>
                           </div>
+                        ) : field.type === 'select' ? (
+                          <select
+                            {...register(`field_${field.id}`, {
+                              required: field.required,
+                              onChange: () => {
+                                const fieldName = `field_${field.id}`;
+                                trigger(fieldName);
+                              },
+                            })}
+                            className="h-11 w-full rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          >
+                            <option value="">Select an option</option>
+                            {(field.options || []).map((option: any) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
                         ) : field.type === 'radio' ? (
                           <RadioGroup 
                             onValueChange={(value) => setValue(`field_${field.id}`, value, { shouldValidate: true })}
                             className="flex flex-col space-y-2"
                           >
                             {(field.options || []).map((option: any) => (
-                              <div key={option.value} className="flex items-center space-x-2">
+                              <div key={option.value} className="flex min-h-10 items-center space-x-2 rounded-xl border border-border/50 bg-muted/25 px-3 py-2">
                                 <RadioGroupItem value={option.value} id={`field_${field.id}_${option.value}`} />
-                                <Label htmlFor={`field_${field.id}_${option.value}`}>{option.label}</Label>
+                                <Label htmlFor={`field_${field.id}_${option.value}`} className="flex-1 text-sm sm:text-base">{option.label}</Label>
                               </div>
                             ))}
                             {/* Hidden input for react-hook-form registration */}
                             <input type="hidden" {...register(`field_${field.id}`, { required: field.required })} />
                           </RadioGroup>
                         ) : field.type === 'checkbox' ? (
-                           <div className="flex items-center space-x-2">
+                           <div className="flex min-h-10 items-center space-x-2 rounded-xl border border-border/50 bg-muted/25 px-3 py-2">
                              <input 
                                type="checkbox" 
                                id={`field_${field.id}`}
                                {...register(`field_${field.id}`, { required: field.required })}
                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                              />
-                             <Label htmlFor={`field_${field.id}`}>{field.placeholder || 'Check this box'}</Label>
+                             <Label htmlFor={`field_${field.id}`} className="flex-1 text-sm sm:text-base">{field.placeholder || 'Check this box'}</Label>
                            </div>
                         ) : field.type === 'file' ? (
                           <Input
@@ -301,7 +319,7 @@ export default function PublicForm() {
                               },
                             })}
                             type="file"
-                            className="bg-muted/40 border-border/60"
+                            className="min-h-11 bg-muted/40 border-border/60 text-sm"
                             multiple={(validationRules.maxFiles ?? 3) > 1}
                             onKeyDown={handleEnter}
                           />
@@ -315,7 +333,7 @@ export default function PublicForm() {
                               },
                             })}
                             type="date"
-                            className="bg-muted/40 border-border/60"
+                            className="h-11 bg-muted/40 border-border/60 text-base"
                             onKeyDown={handleEnter}
                           />
                         ) : (
@@ -327,6 +345,7 @@ export default function PublicForm() {
                                 trigger(fieldName);
                               },
                             })}
+                            className="h-11 bg-muted/40 border-border/60 text-base"
                             onKeyDown={handleEnter}
                           />
                         )}
@@ -345,12 +364,12 @@ export default function PublicForm() {
           </motion.div>
         </AnimatePresence>
 
-        <div className="mt-8 flex justify-between items-center">
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:mt-8 sm:flex-row sm:items-center sm:justify-between">
           <Button 
             variant="ghost" 
             onClick={() => setCurrentStep(p => Math.max(0, p - 1))}
             disabled={currentStep === 0}
-            className={currentStep === 0 ? "invisible" : ""}
+            className={currentStep === 0 ? "hidden sm:invisible sm:inline-flex" : "w-full sm:w-auto"}
           >
             <ChevronLeft className="mr-2 h-4 w-4" /> Previous
           </Button>
@@ -358,7 +377,7 @@ export default function PublicForm() {
           <Button
             onClick={onNext}
             size="lg"
-            className="px-8"
+            className="w-full px-8 sm:w-auto"
             style={primaryColor ? { backgroundColor: primaryColor, color: "#0b0f14" } : undefined}
             disabled={submit.isPending}
           >

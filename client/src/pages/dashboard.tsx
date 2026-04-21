@@ -383,11 +383,11 @@ export default function Dashboard() {
   return (
     <LayoutShell>
       <div className="space-y-8">
-        <div className="rounded-3xl border border-border/70 bg-card px-6 py-6 shadow-[0_10px_28px_rgba(24,48,112,0.08)] md:px-8">
+        <div className="rounded-3xl border border-border/70 bg-card px-4 py-5 shadow-[0_10px_28px_rgba(24,48,112,0.08)] sm:px-6 md:px-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold font-display text-[#1a2a4b]">Dashboard</h1>
-              <p className="text-muted-foreground mt-1">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold font-display text-[#1a2a4b] sm:text-3xl">Dashboard</h1>
+              <p className="mt-1 text-sm text-muted-foreground sm:text-base">
                 Manage your forms, track response quality, and keep every draft moving.
               </p>
             </div>
@@ -403,18 +403,18 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
           <StatCard title="Total Forms" value={totalForms} icon={<FileText className="text-blue-500" />} />
           <StatCard title="Active Forms" value={activeForms} icon={<Sparkles className="text-amber-500" />} />
           <StatCard title="Total Responses" value={totalSubmissions} icon={<BarChart2 className="text-emerald-500" />} />
           <StatCard title="Recent Responses" value={recentSubmissions} icon={<Clock3 className="text-violet-500" />} />
         </div>
 
-        <div className="rounded-3xl border border-border/70 bg-card px-5 py-6 shadow-[0_10px_28px_rgba(24,48,112,0.08)] md:px-7">
+        <div className="rounded-3xl border border-border/70 bg-card px-4 py-5 shadow-[0_10px_28px_rgba(24,48,112,0.08)] sm:px-5 md:px-7">
           <div>
             <h2 className="text-xl font-bold font-display mb-4 text-[#1a2a4b]">Your Forms</h2>
             {forms && forms.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 lg:gap-6">
                 {forms.map((form) => (
                   <FormCard
                     key={form.id}
@@ -1049,11 +1049,11 @@ function AnalyticsPanel({
 function StatCard({ title, value, icon }: { title: string; value: number; icon: React.ReactNode }) {
   return (
     <Card className="border-border/70 bg-card hover:shadow-md transition-shadow">
-      <CardContent className="p-6 flex items-center gap-4">
-        <div className="p-3 rounded-xl bg-[#eef3ff]">{icon}</div>
+      <CardContent className="flex min-h-[112px] flex-col items-start gap-3 p-4 sm:min-h-0 sm:flex-row sm:items-center sm:gap-4 sm:p-6">
+        <div className="rounded-xl bg-[#eef3ff] p-2.5 sm:p-3">{icon}</div>
         <div>
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="text-2xl font-bold font-display">{value}</p>
+          <p className="font-display text-2xl font-bold">{value}</p>
         </div>
       </CardContent>
     </Card>
@@ -1097,7 +1097,7 @@ function FormCard({
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity" data-testid={`button-form-menu-${form.id}`}>
+                <Button variant="ghost" className="h-8 w-8 p-0 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100" data-testid={`button-form-menu-${form.id}`}>
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -1148,7 +1148,7 @@ function FormCard({
               {submissionCount || 0} Responses
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-2 mt-4">
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
             <Button
               className="bg-muted hover:bg-muted/80 text-foreground shadow-none"
               onClick={() => setLocation(`/builder/${form.id}`)}
@@ -1247,13 +1247,13 @@ function CreateFormDialog({ open, onOpenChange }: { open?: boolean; onOpenChange
           Create New Form
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="max-h-[92vh] w-[calc(100vw-1.5rem)] overflow-y-auto rounded-2xl p-4 sm:max-w-[600px] sm:p-6">
         <DialogHeader>
           <DialogTitle className="text-2xl font-display">Create a new form</DialogTitle>
           <DialogDescription>Choose how you want to get started.</DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-3 gap-4 my-6">
+        <div className="my-5 grid grid-cols-1 gap-3 sm:my-6 sm:grid-cols-2 sm:gap-4">
           <div
             className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${activeTab === "ai" ? "border-[#f0be57] bg-[#fff6e4]" : "border-border hover:border-[#f0be57]"}`}
             onClick={() => setActiveTab("ai")}

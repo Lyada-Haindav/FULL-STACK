@@ -167,9 +167,9 @@ export default function FormBuilder() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="flex h-screen flex-col bg-background">
       {/* Builder Header */}
-      <header className="h-16 border-b border-border bg-card px-4 sm:px-6 flex items-center justify-between z-20">
+      <header className="z-20 flex min-h-16 items-center justify-between gap-2 border-b border-border bg-card px-3 py-2 sm:px-6">
         <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
           <Link href="/dashboard">
             <Button variant="ghost" size="icon" className="flex-shrink-0">
@@ -177,8 +177,8 @@ export default function FormBuilder() {
             </Button>
           </Link>
           <div className="h-6 w-[1px] bg-border mx-2 hidden sm:block" />
-          <h1 className="font-bold text-sm sm:text-lg truncate max-w-[150px] sm:max-w-[200px] md:max-w-md">{form.title}</h1>
-          <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded text-xs font-medium uppercase flex-shrink-0">
+          <h1 className="max-w-[120px] truncate text-sm font-bold sm:max-w-[200px] sm:text-lg md:max-w-md">{form.title}</h1>
+          <span className="hidden flex-shrink-0 rounded bg-muted px-2 py-0.5 text-xs font-medium uppercase text-muted-foreground sm:inline-flex">
             {form.isPublished ? 'Published' : 'Draft'}
           </span>
           <span className={`hidden sm:inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${saveStatus.className}`}>
@@ -186,7 +186,7 @@ export default function FormBuilder() {
             {saveStatus.label}
           </span>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-3">
           <Button variant="outline" size="sm" className="hidden sm:flex" onClick={() => window.open(`/forms/${formId}`, '_blank')}>
             <Eye className="h-4 w-4 mr-2" />
             Preview
@@ -199,7 +199,7 @@ export default function FormBuilder() {
         </div>
       </header>
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex flex-1 overflow-hidden">
         {/* Left Sidebar: Steps & Outline */}
         <aside className="w-64 sm:w-72 border-r border-border bg-card flex flex-col hidden lg:block">
           <div className="p-4 border-b border-border">
@@ -236,17 +236,59 @@ export default function FormBuilder() {
         </aside>
 
         {/* Center: Canvas */}
-        <main className="flex-1 bg-muted/30 p-8 overflow-y-auto">
-          <div className="max-w-3xl mx-auto space-y-8">
+        <main className="flex-1 overflow-y-auto bg-muted/30 p-3 sm:p-5 lg:p-8">
+          <div className="mx-auto max-w-3xl space-y-5 sm:space-y-8">
+            <div className="lg:hidden">
+              <div className="mb-2 flex items-center justify-between">
+                <h2 className="text-xs font-semibold uppercase text-muted-foreground">Steps</h2>
+                <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-medium ${saveStatus.className}`}>
+                  {saveStatus.icon}
+                  {saveStatus.label}
+                </span>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {steps.map((step, idx) => (
+                  <button
+                    key={step.id}
+                    className={`flex min-w-[150px] items-center gap-2 rounded-2xl border px-3 py-2 text-left text-sm transition-colors ${
+                      idx === activeStepIndex
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-card text-muted-foreground"
+                    }`}
+                    onClick={() => {
+                      if (idx !== activeStepIndex) {
+                        persistCurrentStep();
+                      }
+                      setActiveStepIndex(idx);
+                    }}
+                    type="button"
+                  >
+                    <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded text-xs ${idx === activeStepIndex ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}>
+                      {idx + 1}
+                    </span>
+                    <span className="truncate">{step.title}</span>
+                  </button>
+                ))}
+                <div className="min-w-[140px]">
+                  <AddStepButton
+                    formId={formId}
+                    nextIndex={steps.length}
+                    onSaveStart={markSaving}
+                    onSaveSuccess={markSaved}
+                    onSaveError={markError}
+                  />
+                </div>
+              </div>
+            </div>
             {/* Step Properties Card */}
             <Card className="shadow-none border-border/50">
-              <div className="p-6 space-y-4">
+              <div className="space-y-4 p-4 sm:p-6">
                 <Input 
                   value={stepTitleDraft}
                   onChange={(e) => setStepTitleDraft(e.target.value)}
                   onBlur={persistCurrentStep}
                   disabled={!currentStep}
-                  className="text-2xl font-bold border-none shadow-none px-0 h-auto focus-visible:ring-0" 
+                  className="h-auto border-none px-0 text-xl font-bold shadow-none focus-visible:ring-0 sm:text-2xl" 
                   placeholder="Step Title"
                 />
                 <Textarea 
@@ -262,7 +304,7 @@ export default function FormBuilder() {
 
             {/* Theme Card */}
             <Card className="shadow-none border-border/50">
-              <div className="p-6 space-y-4">
+              <div className="space-y-4 p-4 sm:p-6">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Theme</h3>
                 </div>
@@ -381,7 +423,7 @@ export default function FormBuilder() {
             </div>
 
             {/* Add Field Palette (Simplified) */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
               <AddFieldButton type="text" icon={<Type className="w-4 h-4" />} label="Text Input" formId={formId} stepId={currentStep?.id} onSaveStart={markSaving} onSaveSuccess={markSaved} onSaveError={markError} />
               <AddFieldButton type="email" icon={<Mail className="w-4 h-4" />} label="Email" formId={formId} stepId={currentStep?.id} onSaveStart={markSaving} onSaveSuccess={markSaved} onSaveError={markError} />
               <AddFieldButton type="textarea" icon={<FileText className="w-4 h-4" />} label="Textarea" formId={formId} stepId={currentStep?.id} onSaveStart={markSaving} onSaveSuccess={markSaved} onSaveError={markError} />
@@ -409,9 +451,10 @@ function PublishButton({ form }: { form: any }) {
     <Button 
       onClick={() => publish.mutate(form.id)} 
       disabled={publish.isPending}
-      className={form.isPublished ? "bg-muted text-foreground hover:bg-muted/80" : "bg-primary text-primary-foreground"}
+      className={form.isPublished ? "px-3 bg-muted text-foreground hover:bg-muted/80 sm:px-4" : "px-3 bg-primary text-primary-foreground sm:px-4"}
     >
-      {publish.isPending ? "Publishing..." : form.isPublished ? "Unpublish" : "Publish Form"}
+      <span className="hidden sm:inline">{publish.isPending ? "Publishing..." : form.isPublished ? "Unpublish" : "Publish Form"}</span>
+      <span className="sm:hidden">{publish.isPending ? "..." : form.isPublished ? "Unpub" : "Publish"}</span>
     </Button>
   );
 }
